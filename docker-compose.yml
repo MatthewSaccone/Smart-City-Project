@@ -1,25 +1,148 @@
+
+name: smart-city-microservices
+
 services:
-  live-traffic:
-    build: ./services/live-traffic
-    ports: ["8081:8080"]
-  traffic-predictor:
-    build: ./services/traffic-predictor
-    ports: ["8082:8080"]
-  construction-incidents:
-    build: ./services/construction-incidents
-    ports: ["8083:8080"]
-  parking-analytics:
-    build: ./services/parking-analytics
-    ports: ["8084:8080"]
-  weather-analytics:
-    build: ./services/weather-analytics
-    ports: ["8085:8080"]
-  transit-analytics:
-    build: ./services/transit-analytics
-    ports: ["8086:8080"]
-  gasoline-analytics:
-    build: ./services/gasoline-analytics
-    ports: ["8087:8080"]
   service-registry:
-    build: ./service-registry
-    ports: ["8090:8080"]
+    build:
+      context: ./service-registry
+      dockerfile: Dockerfile
+
+    restart: unless-stopped
+
+    environment:
+      REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
+      REGISTRY_DATABASE_PATH: /app/data/registry.db
+      REGISTRY_HEARTBEAT_INTERVAL_SECONDS: "5"
+      REGISTRY_EXPIRY_SCAN_SECONDS: "1"
+
+    ports:
+      - "8090:8080"
+
+    volumes:
+      - registry-data:/app/data
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  live-traffic:
+    build:
+      context: ./services
+      dockerfile: live-traffic/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      REGISTRY_URL: http://service-registry:8080
+      REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
+      REGISTRY_ADVERTISED_ENDPOINT: http://live-traffic:8080
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+
+  traffic-predictor:
+    build:
+      context: ./services
+      dockerfile: traffic-predictor/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      REGISTRY_URL: http://service-registry:8080
+      REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
+      REGISTRY_ADVERTISED_ENDPOINT: http://traffic-predictor:8080
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    ports:
+      - "8082:8080"
+
+  construction-incidents:
+    build:
+      context: ./services
+      dockerfile: construction-incidents/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      REGISTRY_URL: http://service-registry:8080
+      REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
+      REGISTRY_ADVERTISED_ENDPOINT: http://construction-incidents:8080
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    ports:
+      - "8083:8080"
+
+  parking-analytics:
+    build:
+      context: ./services
+      dockerfile: parking-analytics/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      REGISTRY_URL: http://service-registry:8080
+      REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
+      REGISTRY_ADVERTISED_ENDPOINT: http://parking-analytics:8080
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    ports:
+      - "8084:8080"
+
+  weather-analytics:
+    build:
+      context: ./services
+      dockerfile: weather-analytics/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      REGISTRY_URL: http://service-registry:8080
+      REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
+      REGISTRY_ADVERTISED_ENDPOINT: http://weather-analytics:8080
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    ports:
+      - "8085:8080"
+
+  transit-analytics:
+    build:
+      context: ./services
+      dockerfile: transit-analytics/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      REGISTRY_URL: http://service-registry:8080
+      REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
+      REGISTRY_ADVERTISED_ENDPOINT: http://transit-analytics:8080
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    ports:
+      - "8086:8080"
+
+  gasoline-analytics:
+    build:
+      context: ./services
+      dockerfile: gasoline-analytics/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      REGISTRY_URL: http://service-registry:8080
+      REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
+      REGISTRY_ADVERTISED_ENDPOINT: http://gasoline-analytics:8080
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    ports:
+      - "8087:8080"
+
+volumes:
+  registry-data:

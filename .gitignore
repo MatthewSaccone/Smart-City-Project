@@ -1,31 +1,87 @@
+
+# ==========================================
 # Environment variables and secrets
+# ==========================================
 .env
 .env.*
 !.env.example
 
+# Service-specific environment files
+**/.env
+**/.env.*
+!**/.env.example
+
+# Credentials and private keys
+*.pem
+*.key
+*.p12
+*.pfx
+service-account*.json
+credentials*.json
+
+# ==========================================
 # Python
+# ==========================================
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
 .venv/
 venv/
+env/
+ENV/
 
-# Node
-node_modules/
-.next/
+# Python packaging
+build/
 dist/
+*.egg-info/
+.eggs/
 
-# IDE
+# ==========================================
+# Testing and coverage
+# ==========================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# ==========================================
+# Databases and generated data
+# ==========================================
+*.db
+*.sqlite
+*.sqlite3
+**/data/
+
+# ==========================================
+# Editors and IDEs
+# ==========================================
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# OS
+# ==========================================
+# Operating system
+# ==========================================
 .DS_Store
 Thumbs.db
+Desktop.ini
 
+# ==========================================
 # Logs
+# ==========================================
 *.log
+logs/
 
-# Terraform
-.terraform/
-*.tfstate
-*.tfstate.*
+# ==========================================
+# Node.js (if introduced by frontend)
+# ==========================================
+node_modules/
+.next/
+out/
