@@ -1,17 +1,62 @@
+
 from datetime import datetime, timezone
 from enum import Enum
+import json
+import re
 from typing import Any
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    HttpUrl,
+    field_validator,
+)
 
 SERVICE_ID_PATTERN = r"^[a-z][a-z0-9-]{1,62}$"
 INSTANCE_ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._:-]{1,127}$"
+
+SENSITIVE_METADATA_KEYS = {
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "apikey",
+    "credential",
+    "credentials",
+    "authorization",
+    "privatekey",
+    "accesskey",
+    "clientsecret",
+}
+
 
 class InstanceStatus(str, Enum):
     healthy = "healthy"
     unavailable = "unavailable"
 
+
+def contains_sensitive_key(value: Any) -> bool:
+    """Recursively detect credential-like metadata field names."""
+    if isinstance(value, dict):
+        for key, nested_value in value.items():
+            normalized_key = re.sub(r"[^a-z0-9]", "", str(key).lower())
+
+            if normalized_key in SENSITIVE_METADATA_KEYS:
+                return True
+
+            if contains_sensitive_key(nested_value):
+                return True
+
+    elif isinstance(value, list):
+        return any(contains_sensitive_key(item) for item in value)
+
+    return False
+
+
 class RegistrationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
     service_id: str = Field(pattern=SERVICE_ID_PATTERN)
     instance_id: str = Field(pattern=INSTANCE_ID_PATTERN)
     endpoint: HttpUrl
@@ -20,15 +65,19 @@ class RegistrationRequest(BaseModel):
 
     @field_validator("metadata")
     @classmethod
-    def metadata_must_be_small_and_secret_free(cls, value: dict[str, Any]) -> dict[str, Any]:
-        import json
-        encoded = json.dumps(value).lower()
+    def validate_metadata(cls, value: dict[str, Any]) -> dict[str, Any]:
+        encoded = json.dumps(value, separators=(",", ":"))
+
         if len(encoded.encode("utf-8")) > 4096:
             raise ValueError("metadata must not exceed 4096 bytes")
-        forbidden = ("password", "secret", "token", "api_key", "apikey", "credential")
-        if any(word in encoded for word in forbidden):
-            raise ValueError("metadata must not contain credentials or secrets")
+
+        if contains_sensitive_key(value):
+            raise ValueError(
+                "metadata must not contain credential-related fields"
+            )
+
         return value
+
 
 class InstanceResponse(BaseModel):
     service_id: str
@@ -41,10 +90,12 @@ class InstanceResponse(BaseModel):
     lease_expires_at: datetime
     metadata: dict[str, Any]
 
+
 class DiscoveryResponse(BaseModel):
     service_id: str
     instances: list[InstanceResponse]
     discovered_at: datetime
+
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
