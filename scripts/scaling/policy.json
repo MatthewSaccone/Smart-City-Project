@@ -1,0 +1,14 @@
+{
+  "service_id": "live-traffic",
+  "min_replicas": 1,
+  "max_replicas": 10,
+  "target_rps_per_replica": 20,
+  "scale_out_utilization": 1.2,
+  "sample_seconds": 5,
+  "scale_out_window_seconds": 10,
+  "scale_out_cooldown_seconds": 15,
+  "scale_in_window_seconds": 120,
+  "scale_in_cooldown_seconds": 60,
+  "scale_in_utilization": 0.4,
+  "latency_target_ms": 2000
+}
