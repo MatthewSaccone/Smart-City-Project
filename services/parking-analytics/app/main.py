@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from shared.registry_client import RegistryClient
+from app.routes import router
 
 
 logging.basicConfig(level=logging.INFO)
@@ -63,6 +64,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.include_router(router)
 
 
 @app.get("/health")
