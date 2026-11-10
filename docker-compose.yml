@@ -2,7 +2,29 @@
 name: smart-city-microservices
 
 services:
-  service-registry:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: smart_city_registry
+      POSTGRES_USER: registry_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U registry_user -d smart_city_registry
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  # First registry API instance
+  registry-1:
     build:
       context: ./service-registry
       dockerfile: Dockerfile
@@ -11,15 +33,13 @@ services:
 
     environment:
       REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
-      REGISTRY_DATABASE_PATH: /app/data/registry.db
+      REGISTRY_DATABASE_URL: postgresql://registry_user:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/smart_city_registry
       REGISTRY_HEARTBEAT_INTERVAL_SECONDS: "5"
       REGISTRY_EXPIRY_SCAN_SECONDS: "1"
 
-    ports:
-      - "8090:8080"
-
-    volumes:
-      - registry-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
 
     healthcheck:
       test:
@@ -32,6 +52,62 @@ services:
       retries: 5
       start_period: 5s
 
+  # Second registry API instance
+  registry-2:
+    build:
+      context: ./service-registry
+      dockerfile: Dockerfile
+
+    restart: unless-stopped
+
+    environment:
+      REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
+      REGISTRY_DATABASE_URL: postgresql://registry_user:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/smart_city_registry
+      REGISTRY_HEARTBEAT_INTERVAL_SECONDS: "5"
+      REGISTRY_EXPIRY_SCAN_SECONDS: "1"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # HAProxy registry gateway
+  service-registry:
+    image: haproxy:3.0-alpine
+    restart: unless-stopped
+
+    ports:
+      - "8090:8080"
+
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+
+    depends_on:
+      registry-1:
+        condition: service_healthy
+      registry-2:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://127.0.0.1:8080/health || exit 1
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # Live traffic analytics
   live-traffic:
     build:
       context: ./services
@@ -48,6 +124,7 @@ services:
     ports:
       - "8081:8080"
 
+  # Traffic prediction
   traffic-predictor:
     build:
       context: ./services
@@ -64,6 +141,7 @@ services:
     ports:
       - "8082:8080"
 
+  # Construction and incident reporting
   construction-incidents:
     build:
       context: ./services
@@ -80,6 +158,7 @@ services:
     ports:
       - "8083:8080"
 
+  # Parking analytics
   parking-analytics:
     build:
       context: ./services
@@ -96,6 +175,7 @@ services:
     ports:
       - "8084:8080"
 
+  # Weather and air quality analytics
   weather-analytics:
     build:
       context: ./services
@@ -112,6 +192,7 @@ services:
     ports:
       - "8085:8080"
 
+  # Public transit analytics
   transit-analytics:
     build:
       context: ./services
@@ -128,6 +209,7 @@ services:
     ports:
       - "8086:8080"
 
+  # Gasoline price analytics
   gasoline-analytics:
     build:
       context: ./services
@@ -146,3 +228,4 @@ services:
 
 volumes:
   registry-data:
+  postgres-data:

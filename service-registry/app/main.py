@@ -21,6 +21,7 @@ from app.models import (
     DiscoveryResponse,
 )
 from app.repository import RegistryRepository
+from app.postgres_repository import PostgresRegistryRepository
 
 
 HEARTBEAT_INTERVAL_SECONDS = int(
@@ -36,18 +37,28 @@ DATABASE_PATH = os.getenv(
     "./data/registry.db",
 )
 
+DATABASE_URL = os.getenv("REGISTRY_DATABASE_URL")
+
 
 def create_app(
-    repository: RegistryRepository | None = None,
+    repository: RegistryRepository | PostgresRegistryRepository | None = None,
     api_key: str | None = None,
 ) -> FastAPI:
     if EXPIRY_SCAN_SECONDS <= 0:
         raise ValueError("REGISTRY_EXPIRY_SCAN_SECONDS must be positive")
 
-    repo = repository or RegistryRepository(
-        DATABASE_PATH,
-        HEARTBEAT_INTERVAL_SECONDS,
-    )
+    if repository is not None:
+        repo = repository
+    elif DATABASE_URL:
+        repo = PostgresRegistryRepository(
+            DATABASE_URL,
+            HEARTBEAT_INTERVAL_SECONDS,
+        )
+    else:
+        repo = RegistryRepository(
+            DATABASE_PATH,
+            HEARTBEAT_INTERVAL_SECONDS,
+        )
 
     # Explicitly supplied keys are useful for isolated tests.
     # Otherwise, load the key from the environment.
