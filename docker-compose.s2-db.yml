@@ -1,0 +1,20 @@
+# Local development only. This database is separate from the Service Registry.
+services:
+  s2-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: traffic_predictor
+      POSTGRES_DB: traffic_predictor
+      POSTGRES_PASSWORD: ${S2_DB_PASSWORD:?Set S2_DB_PASSWORD in your shell before running Docker Compose}
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - s2_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U traffic_predictor -d traffic_predictor"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  s2_postgres_data:
