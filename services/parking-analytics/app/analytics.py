@@ -36,7 +36,7 @@ def estimate_occupancy(
         for facility in facilities:
             distance = distance_m(observation.latitude, observation.longitude,
                                   facility.latitude, facility.longitude)
-            if distance <= facility.geofence_radius_m:
+            if facility.geofence_radius_m is not None and distance <= facility.geofence_radius_m:
                 candidates.append((distance, facility.facility_id))
         return min(candidates)[1] if candidates else None
 
