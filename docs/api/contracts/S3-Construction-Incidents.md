@@ -4,7 +4,7 @@
 |---|---|
 | Document ID | `T008-S3-API` |
 | Version | `1.0` (initial contract) |
-| Status | Adopted API design; identity provider and persistent storage implementation are integration dependencies |
+| Status | Adopted API contract; S3 implementation present; production identity-provider configuration and full acceptance verification remain |
 | Logical service ID | `construction-incidents` (S3) |
 | API version | `/v1` |
 | Governing conventions | `docs/api/API-Standards.md` |
@@ -14,7 +14,9 @@
 
 S3 manages user-submitted reports of **road construction, accidents, and other traffic-related incidents**. It supports geographic search, report details, persistent submissions, controlled updates, resolution/completion/inaccuracy marking, and withdrawal. Unlike S1 and S2, S3 is a **stateful, user-authenticated reporting service**: it owns durable report records and must enforce per-report ownership rules. Public report reads do **not** reveal reporter identity.
 
-The interface is a design contract for future implementations; it does not claim that all endpoints already exist. Unknown external incident feeds are not assumed to be integrated. Official feeds could be a future ingestion source with separately defined provenance and contracts.
+This document defines the adopted S3 API contract. A corresponding FastAPI implementation is present, including the public read endpoints, authenticated write endpoints, request validation, persistence layer, and standard error handling. The existence of implementation code does not establish that every deployment integration or quality target has passed acceptance testing.
+
+Unknown external incident feeds are not assumed to be integrated. Official feeds could be a future ingestion source with separately defined provenance and contracts.
 
 ### Requirements traceability (PR1, Service Requirements, S3)
 
@@ -52,7 +54,7 @@ The interface is a design contract for future implementations; it does not claim
 | Any non-withdrawn status | Withdraw using `DELETE` | `withdrawn` | Report owner or moderator |
 | `withdrawn` | Edit/reopen through public API | Not permitted | None |
 
-No status transition is inferred from the report's age. Setting an already-current field to its existing value is a no-op, without a new modification timestamp. Changing to an unsupported status or forbidden transition returns `422` or `409`, respectively. Modifying, withdrawing, or marking a report in any way is restricted under S3 QR3, including any transition to `inaccurate`.
+No status transition is inferred from the report's age. Setting an already-current field to its existing value is a no-op, without a new modification timestamp. Changing to an unsupported status or attempting a forbidden status transition returns `422 VALIDATION_FAILED`. A request that conflicts with an existing idempotency record returns `409 IDEMPOTENCY_KEY_CONFLICT`. Modifying, withdrawing, or marking a report in any way is restricted under S3 QR3, including any transition to `inaccurate`.
 
 ## 3. Endpoint inventory
 
@@ -298,7 +300,7 @@ All error bodies use the shared `error` envelope, with `code`, safe `message`, `
 | `401` | `AUTHENTICATION_REQUIRED` | Missing, expired, or invalid bearer credentials on write operations |
 | `403` | `FORBIDDEN` | Authenticated requester is neither owner nor moderator |
 | `404` | `NOT_FOUND` | Report missing or withdrawn from public visibility |
-| `409` | `RESOURCE_CONFLICT` / `IDEMPOTENCY_KEY_CONFLICT` | Invalid current status for modification, or reused creation key with a different payload |
+| `409` | `RESOURCE_CONFLICT` / `IDEMPOTENCY_KEY_CONFLICT` | A request conflicts with an existing resource or reuses a creation key with a different payload |
 | `422` | `VALIDATION_FAILED` | Invalid UUID, coordinates, radius, report fields, status transition, or request body |
 | `429` | `RATE_LIMITED` | Client/gateway rate limit exceeded |
 | `500` | `INTERNAL_ERROR` | Unexpected service failure |
@@ -310,17 +312,19 @@ All write operations must validate the bearer token via the trusted platform ide
 
 ## 5. Persistence, ownership, and external dependencies
 
-**S3-owned data entities** (initial design): `IncidentReport` (ID, category, coordinates, description, status, reporter owner ID, event/submission/update timestamps), `IncidentAuditEvent` (incident ID, authorized actor ID, action, previous/new status and change metadata), and `IdempotencyRecord` (verified user scope, operation, key, request fingerprint, original response, expiry). Internal ownership and audit fields are **never public report response fields**.
+**S3-owned data entities:** The implementation manages incident report data, private ownership information, idempotency records, and audit history. Conceptually, these correspond to `IncidentReport`, `IncidentAuditEvent`, and `IdempotencyRecord` responsibilities. Internal ownership and audit fields are **never public report response fields**.
 
-**Persistence:** S3 must use a durable **service-owned database** with transactional changes and geographic index support; PostgreSQL with PostGIS is a proposed storage technology. It is **not** the Service Registry's database. Reports accepted with `201` and their ownership metadata must remain accessible after the S3 process/container restarts (QR4). Withdrawn reports remain durable private records; a finite retention/privacy policy for audit and sensitive user-submitted content must be documented before deployment.
+**Persistence:** S3 uses a dedicated PostgreSQL database with PostGIS support, configured as the `incidents-postgres` service in the root Docker Compose configuration. This database is owned by S3 and is separate from the Service Registry's database. The service uses its own database connection configuration and persistent Docker volume. Report records, private ownership information, idempotency records, and audit history are managed by the S3 repository. Related write operations are performed transactionally. Reports accepted with `201` and their ownership metadata must remain accessible after the S3 process/container restarts (QR4). Withdrawn reports remain durable private records; a finite retention/privacy policy for audit and sensitive user-submitted content must be documented before production deployment.
 
-**External/trusted dependencies:** a platform-approved identity provider or token verifier is necessary for authenticated writes. Report submissions themselves do not require a live third-party construction feed. Municipal roadwork/incident datasets are **candidates to investigate**, not assumed integrations. If added, their retrieval method, licensing, data update cadence, rate limits, identifiers, trust classification, and failure behavior must be specified in the separate external-dependency inventory. External submissions must not bypass S3's ownership or moderation policy.
+**External/trusted dependencies:** S3 contains a JWT resource-server implementation that verifies RS256 bearer tokens using keys obtained from a configured JWKS endpoint. Issuer, audience, JWKS URL, and role-claim settings are configurable through environment variables. A platform-approved identity provider must still be selected and configured for the deployed environment; the presence of the verifier does not mean production identity integration is complete.
+
+Report submissions themselves do not require a live third-party construction feed. Municipal roadwork/incident datasets are **candidates to investigate**, not assumed integrations. If added, their retrieval method, licensing, data update cadence, rate limits, identifiers, trust classification, and failure behavior must be specified in the separate external-dependency inventory. External submissions must not bypass S3's ownership or moderation policy.
 
 **Readiness:**
 
 - `GET /health` returns `200` and `{ "service": "construction-incidents", "status": "healthy" }` if the process responds, without expensive dependency checks.
-- `GET /ready` returns `200` and `{ "service": "construction-incidents", "status": "ready" }` only when report storage is accessible for necessary read/write operations and trusted token verification is available (including valid cached key material where approved). Otherwise return `503` with the common error envelope.
-- A separate, optional external municipal feed being unavailable **does not** make user-submitted reporting unready when report storage and auth work.
+- `GET /ready` returns `200` and `{ "service": "construction-incidents", "status": "ready" }` only when report storage is accessible and the configured token verifier can obtain trusted signing keys from its JWKS endpoint. Otherwise, it returns `503` with the common error envelope. Cached-key readiness during a JWKS outage is not currently guaranteed by the implementation.
+- A separate, optional external municipal feed being unavailable **does not** make user-submitted reporting unready when report storage and authentication work.
 
 ## 6. Performance and verification
 
@@ -332,6 +336,8 @@ All write operations must validate the bearer token via the trusted platform ide
 6. Verify public reads do not expose withdrawn records or the owner ID; duplicate-key replays create only one record; status transitions and audit history persist.
 7. Verify radius boundary, stable ordering, 25/100 pagination conventions, UTF-8 description handling, UTC normalization, structured errors, rate limits, and readiness behavior.
 
+The above are acceptance requirements. They must not be treated as measured results until repeatable test evidence is available.
+
 ## 7. Contract acceptance checklist
 
 - [ ] OpenAPI 3.1 parses and its local `$ref`s resolve; all documented examples validate against their schemas.
@@ -342,8 +348,8 @@ All write operations must validate the bearer token via the trusted platform ide
 - [ ] Status, timestamp, geospatial, and body validation reject invalid requests consistently.
 - [ ] List filtering, sorting, tie-breaker, pagination, and 7-day active-report review-age flag behave as specified.
 - [ ] QR1 1,500 ms, QR5 500 ms, and QR4 restart persistence are verified with repeatable tests.
-- [ ] Identity provider/token claims, database/storage technology, report retention/privacy policy, and optional external incident-feed choice are recorded in T008 dependency/ownership documentation before deployment.
+- [ ] Production identity-provider configuration and token claims are verified; report retention/privacy policy is approved; any optional external incident-feed integration is separately documented before deployment.
 
 ## 8. Contract change policy
 
-The Markdown document and its OpenAPI companion jointly define the **implementation target**. If prose and schema disagree, reconcile both before implementation. Breaking API changes require an approved version/migration plan under `API-Standards.md`. This contract does **not** describe pre-existing source-code behavior.
+The Markdown document and its OpenAPI companion jointly define the **S3 API contract**. If prose and schema disagree, reconcile both and update the implementation as required. Breaking API changes require an approved version/migration plan under `API-Standards.md`. This document describes the adopted interface and required behaviour; implementation and deployment acceptance must still be supported by test evidence.

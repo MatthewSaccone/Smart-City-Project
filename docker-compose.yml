@@ -23,6 +23,33 @@ services:
       retries: 10
       start_period: 5s
 
+  
+  # Dedicated PostgreSQL/PostGIS database for Construction & Incidents
+  incidents-postgres:
+    image: postgis/postgis:16-3.5
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: smart_city_incidents
+      POSTGRES_USER: incidents_user
+      POSTGRES_PASSWORD: ${INCIDENTS_POSTGRES_PASSWORD:?Set INCIDENTS_POSTGRES_PASSWORD in .env}
+
+    ports:
+      - "127.0.0.1:5433:5432"
+
+    volumes:
+      - incidents-postgres-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U incidents_user -d smart_city_incidents
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+
   # First registry API instance
   registry-1:
     build:
@@ -152,11 +179,25 @@ services:
       REGISTRY_URL: http://service-registry:8080
       REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
       REGISTRY_ADVERTISED_ENDPOINT: http://construction-incidents:8080
+
+      INCIDENTS_DATABASE_URL: postgresql://incidents_user:${INCIDENTS_POSTGRES_PASSWORD:?Set INCIDENTS_POSTGRES_PASSWORD in .env}@incidents-postgres:5432/smart_city_incidents
+
+      JWT_ISSUER: ${JWT_ISSUER:-}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-}
+      JWT_JWKS_URL: ${JWT_JWKS_URL:-}
+      JWT_ROLE_CLAIM: ${JWT_ROLE_CLAIM:-roles}
+      JWT_MODERATOR_ROLE: ${JWT_MODERATOR_ROLE:-moderator}
+      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-30}
+      JWT_JWKS_TIMEOUT_SECONDS: ${JWT_JWKS_TIMEOUT_SECONDS:-5}
+
     depends_on:
       service-registry:
         condition: service_healthy
+      incidents-postgres:
+        condition: service_healthy
     ports:
       - "8083:8080"
+
 
   # Parking analytics
   parking-analytics:
@@ -229,3 +270,4 @@ services:
 volumes:
   registry-data:
   postgres-data:
+  incidents-postgres-data:
