@@ -2,9 +2,9 @@
   "source": "simulated_fixture",
   "as_of": "2026-11-09T17:00:00Z",
   "facilities": [
-    {"facility_id": "demo-central", "name": "Simulated Central Lot", "latitude": 43.6532, "longitude": -79.3832, "capacity": 4, "geofence_radius_m": 50},
-    {"facility_id": "demo-east", "name": "Simulated East Lot", "latitude": 43.6542, "longitude": -79.3732, "capacity": 2, "geofence_radius_m": 50},
-    {"facility_id": "demo-north", "name": "Simulated North Lot", "latitude": 43.6632, "longitude": -79.3832, "capacity": 10, "geofence_radius_m": 50}
+    {"facility_id": "demo-central", "name": "Simulated Central Lot", "latitude": 43.6532, "longitude": -79.3832, "capacity": 4, "geofence_radius_m": 50, "facility_status": "open"},
+    {"facility_id": "demo-east", "name": "Simulated East Lot", "latitude": 43.6542, "longitude": -79.3732, "capacity": 2, "geofence_radius_m": 50, "facility_status": "open"},
+    {"facility_id": "demo-north", "name": "Simulated North Lot", "latitude": 43.6632, "longitude": -79.3832, "capacity": 10, "geofence_radius_m": 50, "facility_status": "closed"}
   ],
   "observations": [
     {"subject_id": "demo-a", "latitude": 43.6532, "longitude": -79.3832, "observed_at": "2026-11-09T16:59:10Z"},

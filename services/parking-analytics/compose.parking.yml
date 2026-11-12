@@ -1,0 +1,11 @@
+# Optional S4-only additions to the team's root Compose configuration.
+services:
+  parking-analytics:
+    environment:
+      PARKING_INTERNAL_CLIENTS: ${PARKING_INTERNAL_CLIENTS:-[]}
+      PARKING_OCCUPANCY_MODE: ${PARKING_OCCUPANCY_MODE:-fixture}
+      PARKING_CACHE_PATH: /app/data/parking.sqlite
+    volumes:
+      - parking-snapshots:/app/data
+volumes:
+  parking-snapshots:

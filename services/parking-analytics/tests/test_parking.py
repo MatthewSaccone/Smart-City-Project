@@ -24,31 +24,28 @@ def stationary(subject="one"):
     return [sample(subject, -50), sample(subject, -10)]
 
 
-@pytest.fixture
-def client(monkeypatch):
-    monkeypatch.setattr(main, "REGISTRY_URL", None)
-    with TestClient(main.app) as client:
-        yield client
+ESTIMATE_HEADERS = {"Authorization": "Bearer test-estimator-token-long-enough"}
 
 
 def test_geographic_search_with_calculated_fixture_occupancy(client):
     response = client.get("/v1/parking/facilities", params=BOUNDS)
     assert response.status_code == 200
     body = response.json()
-    assert body["source"] == "simulated_fixture" and body["is_live"] is False
-    assert body["as_of"] == "2026-11-09T17:00:00Z"
-    facilities = {item["facility_id"]: item for item in body["facilities"]}
+    assert body["facility_source"] == "simulated_fixture"
+    facilities = {item["facility_id"]: item for item in body["items"]}
     assert set(facilities) == {"demo-central", "demo-east"}
     assert facilities["demo-central"]["occupancy"]["estimated_occupied_spaces"] == 2
     assert facilities["demo-east"]["occupancy"]["congestion"] == "full"
+    assert facilities["demo-central"]["occupancy"]["data_status"] == "simulated"
+    assert facilities["demo-central"]["occupancy"]["observed_at"] == "2026-11-09T16:59:55Z"
 
 
 def test_inclusive_point_bounds_and_empty_area(client):
     response = client.get("/v1/parking/facilities", params={
         "min_lat": 43.6532, "max_lat": 43.6532, "min_lon": -79.3832, "max_lon": -79.3832})
-    assert [f["facility_id"] for f in response.json()["facilities"]] == ["demo-central"]
+    assert [f["facility_id"] for f in response.json()["items"]] == ["demo-central"]
     assert client.get("/v1/parking/facilities", params={
-        "min_lat": 0, "max_lat": 1, "min_lon": 0, "max_lon": 1}).json()["facilities"] == []
+        "min_lat": 0, "max_lat": 1, "min_lon": 0, "max_lon": 1}).json()["items"] == []
 
 
 @pytest.mark.parametrize("changes", [
@@ -113,12 +110,12 @@ def test_batch_endpoint_calculates_from_changed_inputs_without_persisting(client
     observations = [sample(latitude=43.6532, longitude=-79.3832, seconds=t).model_dump(mode="json")
                     for t in (-50, -10)]
     request = {"as_of": NOW.isoformat(), "observations": observations}
-    body = client.post("/v1/parking/occupancy/estimate", json=request).json()
+    body = client.post("/v1/parking/occupancy/estimate", json=request, headers=ESTIMATE_HEADERS).json()
     assert body["source"] == "submitted_observations" and body["is_live"] is False
-    assert body["occupancy"][0]["estimated_occupied_spaces"] == 1
-    empty = client.post("/v1/parking/occupancy/estimate", json={"observations": []})
+    assert body["items"][0]["estimated_occupied_spaces"] == 1
+    empty = client.post("/v1/parking/occupancy/estimate", json={"observations": []}, headers=ESTIMATE_HEADERS)
     assert empty.status_code == 200
-    assert all(item["congestion"] == "unknown" for item in empty.json()["occupancy"])
+    assert all(item["congestion"] == "unknown" for item in empty.json()["items"])
 
 
 @pytest.mark.parametrize("changes", [
@@ -127,13 +124,13 @@ def test_batch_endpoint_calculates_from_changed_inputs_without_persisting(client
 ])
 def test_observation_validation(client, changes):
     observation = sample().model_dump(mode="json") | changes
-    assert client.post("/v1/parking/occupancy/estimate", json={
+    assert client.post("/v1/parking/occupancy/estimate", headers=ESTIMATE_HEADERS, json={
         "observations": [observation]}).status_code == 422
 
 
 def test_conflicting_same_timestamp_is_rejected(client):
     first = sample().model_dump(mode="json")
-    assert client.post("/v1/parking/occupancy/estimate", json={
+    assert client.post("/v1/parking/occupancy/estimate", headers=ESTIMATE_HEADERS, json={
         "observations": [first, first | {"latitude": 44}]}).status_code == 422
 
 
@@ -163,3 +160,8 @@ def test_registry_key_is_still_required(monkeypatch):
     with pytest.raises(RuntimeError, match="REGISTRY_API_KEY"):
         with TestClient(main.app):
             pass
+
+
+def test_facility_without_geofence_cannot_produce_a_false_count():
+    facility = LOT.model_copy(update={"geofence_radius_m": None})
+    assert estimate_occupancy([facility], stationary(), NOW)[0].estimated_occupied_spaces is None

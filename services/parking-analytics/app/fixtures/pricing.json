@@ -1,0 +1,23 @@
+{
+  "source": "simulated_tariffs",
+  "note": "Synthetic CAD tariffs authored for this demo; not a real provider or a parking quote. No authoritative provider update time is known, so source timestamps remain null; the service records its actual load time separately.",
+  "facilities": {
+    "demo-central": {
+      "currency": "CAD",
+      "rates": [
+        {"rate_id": "hourly", "label": "Simulated standard hourly tariff", "amount": 3.5, "unit": "hour"},
+        {"rate_id": "daily", "label": "Simulated daily maximum", "amount": 18, "unit": "day"}
+      ],
+      "additional_fees": [{"fee_id": "entry", "label": "Simulated per-entry service fee", "amount": 1}],
+      "tax_included": false,
+      "source_updated_at": null
+    },
+    "demo-east": {
+      "currency": "CAD",
+      "rates": [{"rate_id": "entry", "label": "Simulated flat entry tariff", "amount": 6, "unit": "entry"}],
+      "additional_fees": [],
+      "tax_included": true,
+      "source_updated_at": null
+    }
+  }
+}
