@@ -1,11 +1,20 @@
-﻿import logging
+import logging
 import os
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.exceptions import RequestValidationError
 
 from shared.registry_client import RegistryClient
+
+from .routes import router
+from .history import HistoryStore
+from .postgres_history import PostgresHistoryStore
+from .baseline import PostgresBaselinePredictor
+from .errors import (ServiceError, request_id_from_header, service_error_handler,
+                     validation_error_handler, http_error_handler, unexpected_error_handler)
+from .models import HealthResponse, ReadyResponse
 
 
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +32,27 @@ REGISTRY_API_KEY = os.getenv("REGISTRY_API_KEY")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Load source-normalized historical data independently of the prediction model.
+    # S2 FR1 can work before a validated forecasting model is available.
+    history_csv = os.getenv("S2_HISTORY_CSV")
+    history_metadata = os.getenv("S2_HISTORY_METADATA")
+    if bool(history_csv) != bool(history_metadata):
+        raise RuntimeError("Set both S2_HISTORY_CSV and S2_HISTORY_METADATA, or neither")
+    database_url = os.getenv("S2_DATABASE_URL")
+    if database_url and history_csv:
+        raise RuntimeError("Configure either S2_DATABASE_URL or fixture CSV, not both")
+    if database_url:
+        app.state.history_store = PostgresHistoryStore(database_url)
+    elif history_csv:
+        app.state.history_store = HistoryStore.from_files(history_csv, history_metadata)
+    else:
+        app.state.history_store = None
+    # Predictions are gated by the approved, unexpired model registry entry.
+    model_version = os.getenv("S2_MODEL_VERSION", "").strip()
+    app.state.traffic_backend = (
+        PostgresBaselinePredictor(database_url, model_version)
+        if database_url and model_version else None
+    )
     registry_client = None
 
     if REGISTRY_URL:
@@ -65,12 +95,46 @@ app = FastAPI(
 )
 
 
-@app.get("/health")
+# Historical endpoints and prediction endpoints have independent dependencies.
+app.state.traffic_backend = None
+app.state.history_store = None
+app.include_router(router)
+
+
+@app.middleware("http")
+async def attach_request_id(request: Request, call_next):
+    request.state.request_id = request_id_from_header(request.headers.get("X-Request-ID"))
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request.state.request_id
+    return response
+
+
+app.add_exception_handler(ServiceError, service_error_handler)
+app.add_exception_handler(RequestValidationError, validation_error_handler)
+app.add_exception_handler(HTTPException, http_error_handler)
+app.add_exception_handler(Exception, unexpected_error_handler)
+
+
+@app.get("/health", response_model=HealthResponse, operation_id="getHealth")
 def health():
-    return {
-        "service": SERVICE_ID,
-        "status": "ok",
-    }
+    return HealthResponse()
+
+
+@app.get("/ready", response_model=ReadyResponse, operation_id="getReadiness")
+def ready():
+    store = app.state.history_store
+    backend = app.state.traffic_backend
+    history_ready = store is not None and (
+        not hasattr(store, "is_ready") or store.is_ready()
+    )
+    prediction_ready = backend is not None and backend.is_ready()
+    if not (history_ready or prediction_ready):
+        raise ServiceError(503, "SERVICE_UNAVAILABLE",
+                           "No historical dataset or validated prediction model is available.",
+                           retryable=True)
+    # Operational readiness for the currently implemented historical endpoint;
+    # model-based forecast endpoints continue to return 503 until connected.
+    return ReadyResponse()
 
 
 @app.get("/")
