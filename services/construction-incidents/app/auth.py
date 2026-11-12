@@ -1,4 +1,3 @@
-
 """End-user JWT authentication for the Construction & Incidents service.
 
 S3 is a resource server. It does not issue tokens or establish user identities.
@@ -43,6 +42,7 @@ class JWTSettings:
     moderator_role: str = "moderator"
     leeway_seconds: int = 30
     jwks_timeout_seconds: int = 5
+    allow_insecure_jwks: bool = False
 
     @property
     def configured(self) -> bool:
@@ -53,6 +53,22 @@ class JWTSettings:
 
     @classmethod
     def from_env(cls) -> "JWTSettings":
+        insecure_setting = os.getenv(
+            "JWT_ALLOW_INSECURE_JWKS", "false"
+        ).strip().lower()
+
+        if insecure_setting not in {"true", "false"}:
+            raise ValueError(
+                "JWT_ALLOW_INSECURE_JWKS must be 'true' or 'false'"
+            )
+
+        # The HTTP exception is effective only in explicit development mode.
+        allow_insecure_jwks = (
+            insecure_setting == "true"
+            and os.getenv("APP_ENV", "production").strip().lower()
+            == "development"
+        )
+
         settings = cls(
             issuer=os.getenv("JWT_ISSUER") or None,
             audience=os.getenv("JWT_AUDIENCE") or None,
@@ -63,6 +79,7 @@ class JWTSettings:
             jwks_timeout_seconds=int(
                 os.getenv("JWT_JWKS_TIMEOUT_SECONDS", "5")
             ),
+            allow_insecure_jwks=allow_insecure_jwks,
         )
 
         if not 0 <= settings.leeway_seconds <= 60:
@@ -82,19 +99,29 @@ class JWTSettings:
         if settings.configured:
             parsed = urlparse(settings.jwks_url)
 
+            if not parsed.netloc or not parsed.hostname:
+                raise ValueError("JWT_JWKS_URL must be an absolute URL")
+
             is_local_http = (
                 parsed.scheme == "http"
                 and parsed.hostname in {"localhost", "127.0.0.1"}
             )
 
-            if parsed.scheme != "https" and not is_local_http:
+            is_development_keycloak_http = (
+                parsed.scheme == "http"
+                and parsed.hostname == "keycloak"
+                and parsed.port == 8080
+                and settings.allow_insecure_jwks
+            )
+
+            if parsed.scheme != "https" and not (
+                is_local_http or is_development_keycloak_http
+            ):
                 raise ValueError(
                     "JWT_JWKS_URL must use HTTPS "
-                    "(HTTP is allowed only for localhost)"
+                    "(HTTP is allowed only for localhost or explicitly "
+                    "enabled local-development Keycloak)"
                 )
-
-            if not parsed.netloc:
-                raise ValueError("JWT_JWKS_URL must be an absolute URL")
 
         return settings
 
@@ -189,7 +216,9 @@ class TokenVerifier:
             )
 
         except InvalidTokenError as exc:
-            raise InvalidAccessToken("Access token validation failed") from exc
+            raise InvalidAccessToken(
+                "Access token validation failed"
+            ) from exc
 
         subject = claims.get("sub")
 
@@ -209,7 +238,6 @@ class TokenVerifier:
             # A malformed role claim must never grant elevated permissions.
             roles = frozenset()
 
-        
         return Principal(
             subject=subject,
             roles=roles,

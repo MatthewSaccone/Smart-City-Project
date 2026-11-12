@@ -1,6 +1,6 @@
 # S3 — Construction & Incident Reporting Architecture
 
-> **Status:** Implemented service architecture. Production identity-provider configuration, deployment integration, and full acceptance verification remain outstanding.
+> **Status:** S3 service implementation and local Keycloak authentication integration are implemented. Local API smoke tests and authentication tests have passed. Production identity-provider hardening, gateway/frontend integration, deployment configuration, and full acceptance verification remain outstanding.
 
 ## 1. Purpose and Scope
 
@@ -132,7 +132,27 @@ The following environment variables configure the verifier:
 | `JWT_ROLE_CLAIM` | Role claim name; defaults to `roles` |
 | `JWT_MODERATOR_ROLE` | Moderator role; defaults to `moderator` |
 
-The production identity provider, issuer, audience, and final claim conventions must be confirmed before deployment.
+#### Local development identity provider
+
+The local Docker Compose environment uses Keycloak 26.4.7 as the shared identity provider planned for all seven microservices.
+
+| Setting | Local development value |
+|---|---|
+| Realm | `smart-city` |
+| Client / API audience | `smart-city-api` |
+| Issuer | `http://localhost:8088/realms/smart-city` |
+| Internal JWKS endpoint | `http://keycloak:8080/realms/smart-city/protocol/openid-connect/certs` |
+| Role claim | `roles` |
+| Realm roles | `user`, `moderator` |
+| Signing algorithm | RS256 |
+
+Keycloak issues access tokens; S3 acts only as a resource server and validates those tokens. S3 does not issue tokens or manage user credentials.
+
+The local Keycloak container uses development mode and HTTP. HTTP JWKS access is permitted only when `APP_ENV=development` and `JWT_ALLOW_INSECURE_JWKS=true` are both explicitly configured. The application defaults to production mode when `APP_ENV` is unset.
+
+Direct Access Grants (password grant) are enabled for local API smoke testing only. They are not the intended frontend authentication flow. A production frontend should use OpenID Connect Authorization Code with PKCE. Service-to-service authentication should use an appropriate workload identity or client-credentials flow.
+
+This local configuration is not production-ready. Production deployment requires a hardened Keycloak configuration, HTTPS issuer and JWKS endpoints, secure secret management, production-grade database persistence and backups, and confirmation of the final cross-service token and role conventions. API Gateway authentication is not yet configured; S3 currently performs its own token verification and authorization.
 
 ### 5.3 Authorization rules
 
@@ -313,11 +333,12 @@ A formal retention and privacy policy must be approved before production collect
 
 ## 13. Outstanding Architecture and Deployment Work
 
-The core S3 service architecture is implemented. The following items remain to be confirmed or verified:
+The core S3 service architecture and local Keycloak authentication integration are implemented. The following items remain outstanding or require production-level verification:
 
-- Production identity provider and JWT claim conventions.
-- Approved retention and privacy policy.
-- Production database provisioning and backup/recovery.
-- Gateway and frontend integration.
-- Representative performance and concurrency acceptance tests.
-- Production deployment and readiness verification.
+- Harden and deploy Keycloak for production, including HTTPS, secret management, database persistence, and backup/recovery.
+- Confirm final token claims, audiences, and role conventions across all seven microservices.
+- Configure and verify API Gateway and frontend authentication integration.
+- Approve retention and privacy policies.
+- Provision production PostgreSQL/PostGIS infrastructure and establish backup/recovery procedures.
+- Complete representative performance and concurrency acceptance tests.
+- Complete production deployment and readiness verification.

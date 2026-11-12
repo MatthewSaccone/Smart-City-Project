@@ -225,3 +225,69 @@ def test_moderator_dependency_accepts_moderator():
     )
 
     assert auth.require_moderator(principal) is principal
+
+
+def test_keycloak_http_jwks_rejected_without_explicit_development_opt_in(
+    monkeypatch,
+):
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("JWT_ISSUER", "http://localhost:8088/realms/smart-city")
+    monkeypatch.setenv("JWT_AUDIENCE", "smart-city-api")
+    monkeypatch.setenv(
+        "JWT_JWKS_URL",
+        "http://keycloak:8080/realms/smart-city/protocol/openid-connect/certs",
+    )
+    monkeypatch.setenv("JWT_ALLOW_INSECURE_JWKS", "false")
+
+    with pytest.raises(ValueError, match="must use HTTPS"):
+        auth.JWTSettings.from_env()
+
+
+def test_keycloak_http_jwks_allowed_with_explicit_development_opt_in(
+    monkeypatch,
+):
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("JWT_ISSUER", "http://localhost:8088/realms/smart-city")
+    monkeypatch.setenv("JWT_AUDIENCE", "smart-city-api")
+    monkeypatch.setenv(
+        "JWT_JWKS_URL",
+        "http://keycloak:8080/realms/smart-city/protocol/openid-connect/certs",
+    )
+    monkeypatch.setenv("JWT_ALLOW_INSECURE_JWKS", "true")
+
+    settings = auth.JWTSettings.from_env()
+
+    assert settings.allow_insecure_jwks is True
+    assert settings.jwks_url.startswith("http://keycloak:8080/")
+
+
+def test_keycloak_http_jwks_rejected_outside_development_even_with_opt_in(
+    monkeypatch,
+):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("JWT_ISSUER", "http://localhost:8088/realms/smart-city")
+    monkeypatch.setenv("JWT_AUDIENCE", "smart-city-api")
+    monkeypatch.setenv(
+        "JWT_JWKS_URL",
+        "http://keycloak:8080/realms/smart-city/protocol/openid-connect/certs",
+    )
+    monkeypatch.setenv("JWT_ALLOW_INSECURE_JWKS", "true")
+
+    with pytest.raises(ValueError, match="must use HTTPS"):
+        auth.JWTSettings.from_env()
+
+
+def test_keycloak_http_jwks_rejected_when_app_env_is_unset(
+    monkeypatch,
+):
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.setenv("JWT_ISSUER", "http://localhost:8088/realms/smart-city")
+    monkeypatch.setenv("JWT_AUDIENCE", "smart-city-api")
+    monkeypatch.setenv(
+        "JWT_JWKS_URL",
+        "http://keycloak:8080/realms/smart-city/protocol/openid-connect/certs",
+    )
+    monkeypatch.setenv("JWT_ALLOW_INSECURE_JWKS", "true")
+
+    with pytest.raises(ValueError, match="must use HTTPS"):
+        auth.JWTSettings.from_env()
