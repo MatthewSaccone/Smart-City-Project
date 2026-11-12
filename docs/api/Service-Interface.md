@@ -1,161 +1,172 @@
 # Service Interfaces and API Contracts
 
-> **Status:** Contract template and initial service inventory. The endpoint examples below are placeholders, not claims about implemented routes. Update from the actual OpenAPI specifications and code.
+> **Status:** Service interface inventory and API contract index. The S3 Construction & Incidents interface is documented in its service-specific contract and implemented in the corresponding microservice. Other services should use their respective service-specific contracts as the source of truth.
 
 ## 1. Purpose
 
-This document defines the external interfaces between the frontend, gateway, registry, and domain services.
+This document provides an index of the external interfaces between the frontend, API gateway, service registry, and domain microservices.
 
-Contracts should be agreed before dependent components integrate.
+Each service-specific contract defines its endpoints, request and response schemas, validation rules, authentication requirements, and expected behaviour. Contracts should be reviewed before dependent components integrate.
 
 ## 2. General API Conventions
 
-The team should standardize:
+The following conventions apply across the Smart City platform unless a service-specific contract documents an exception:
 
-- Base URL and API versioning.
-- JSON request and response formats unless a documented exception exists.
-- UTC timestamps in ISO 8601 format.
+- Versioned HTTP API paths, using `/v1` for versioned service endpoints.
+- JSON request and response formats.
+- UTC timestamps represented using ISO 8601.
 - Consistent pagination for collection endpoints.
 - Consistent error response structure.
-- Input validation and documented constraints.
-- Request IDs/correlation IDs for tracing.
-- Authentication and authorization.
-- Timeouts, retry rules, and idempotency.
+- Explicit input validation and documented constraints.
+- Request IDs for tracing and error correlation.
+- Authentication and authorization requirements documented per endpoint.
+- Defined timeout, retry, and idempotency behaviour where applicable.
+- Explicit data freshness and availability indicators where relevant.
 
-### Suggested Error Envelope
+### Standard Error Envelope
+
+Service errors use the following response structure:
 
 ```json
 {
   "error": {
-    "code": "INVALID_REQUEST",
-    "message": "A required field is missing",
-    "request_id": "example-request-id"
+    "code": "VALIDATION_FAILED",
+    "message": "The request contains invalid fields",
+    "request_id": "example-request-id",
+    "details": [],
+    "retryable": false,
+    "source": "service"
   }
 }
 ```
 
-This is a proposed convention. Confirm and adopt it before implementation.
+The HTTP status code and error code communicate the failure category. The request ID supports tracing, while `details` provides additional validation information when applicable.
 
 ## 3. Component Interface Inventory
 
 | Component | Consumer | Main interface purpose |
 |---|---|---|
 | Frontend | User | User interactions and data presentation |
-| Gateway | Frontend | Client-facing API entry point |
-| Registry | Gateway / service consumers | Logical service discovery |
-| Live Traffic | Gateway / frontend | Current traffic and congestion |
-| Traffic Predictor | Gateway / frontend | Future traffic estimates |
-| Construction & Incidents | Gateway / frontend | Incident and construction reports |
-| Parking Analytics | Gateway / frontend | Parking availability and pricing |
-| Weather Analytics | Gateway / frontend | Weather and air quality |
-| Transit Analytics | Gateway / frontend | Transit information and analysis |
-| Gasoline Analytics | Gateway / frontend | Fuel prices and station data |
+| API Gateway | Frontend | Client-facing API entry point and request routing |
+| Service Registry | Gateway / service consumers | Logical service discovery and health monitoring |
+| Live Traffic (S1) | Gateway / frontend | Current traffic and congestion information |
+| Traffic Predictor (S2) | Gateway / frontend | Historical traffic analysis and future congestion estimates |
+| Construction & Incidents (S3) | Gateway / frontend | User-submitted construction and incident reports |
+| Parking Analytics (S4) | Gateway / frontend | Parking availability, congestion, and pricing |
+| Weather Analytics (S5) | Gateway / frontend | Weather and air-quality information |
+| Transit Analytics (S6) | Gateway / frontend | Public transit information and analysis |
+| Gasoline Analytics (S7) | Gateway / frontend | Fuel prices and station information |
 
-## 4. Service Contract Templates
+Each domain service maintains its own application logic and data responsibilities. The gateway routes requests to services, while the registry provides logical service discovery rather than requiring consumers to hard-code service addresses.
 
-For every endpoint, document:
+## 4. Service Contract Index
 
-| Field | Description |
+The following documents define the service-specific API contracts:
+
+| Service | Contract |
 |---|---|
-| Service and endpoint | Logical service ID and HTTP path |
-| Method | GET, POST, PUT, PATCH, DELETE |
-| Purpose | What the operation does |
-| Authentication | Required identity/role |
-| Path/query parameters | Names, types, constraints |
-| Request body | Schema and example |
-| Success response | Status code and schema |
-| Error responses | Status codes and error codes |
-| Timeout | Maximum expected processing time |
-| Idempotency | Whether safe to retry |
-| Data freshness | Expected age of returned data |
-| Test coverage | Associated test IDs |
+| S1 – Live Traffic | [S1 Live Traffic API Contract](contracts/S1-Live-Traffic.md) |
+| S2 – Traffic Predictor | [S2 Traffic Predictor API Contract](contracts/S2-Traffic-Predictor.md) |
+| S3 – Construction & Incidents | [S3 Construction & Incidents API Contract](contracts/S3-Construction-Incidents.md) |
+| S4 – Parking Analytics | [S4 Parking Analytics API Contract](contracts/S4-Parking-Analytics.md) |
+| S5 – Weather & Air Quality | [S5 Weather & Air Quality API Contract](contracts/S5-Weather-Air-Quality.md) |
+| S6 – Public Transit | [S6 Public Transit API Contract](contracts/S6-Public-Transit.md) |
+| S7 – Gasoline Analytics | [S7 Gasoline Analytics API Contract](contracts/S7-Gasoline-Analytics.md) |
 
-## 5. Initial Service-Specific Contract Scope
+The S3 service also has an OpenAPI specification:
 
-### 5.1 Live Traffic
+`shared/api-contracts/s3-construction-incidents.openapi.yaml`
 
-Candidate operations:
+The service-specific contract and OpenAPI specification should remain consistent with the implemented service.
 
-- Retrieve current traffic conditions for a location or area.
-- Compare congestion between two points or within a radius.
-- Return estimated delays and data freshness.
+## 5. S3 – Construction & Incidents Interface Summary
 
-Define coordinate format, radius units, time zone, freshness metadata, and behaviour when live data is unavailable.
+S3 provides user-submitted construction and incident reports for a geographic area. It supports public report retrieval and authenticated report creation and management.
 
-### 5.2 Traffic Predictor
+### 5.1 Endpoints
 
-Candidate operations:
+| Method | Endpoint | Authentication | Purpose |
+|---|---|---|---|
+| GET | `/v1/incidents` | Public | List reports within a geographic radius, with filtering, sorting, and pagination |
+| GET | `/v1/incidents/{incident_id}` | Public | Retrieve an individual report |
+| POST | `/v1/incidents` | Bearer token required | Submit a new report |
+| PATCH | `/v1/incidents/{incident_id}` | Bearer token required | Update an existing report or its status |
+| DELETE | `/v1/incidents/{incident_id}` | Bearer token required | Withdraw a report |
+| GET | `/health` | Public | Check service liveness |
+| GET | `/ready` | Public | Check database and trusted token-verification readiness |
 
-- Retrieve historical congestion for a location, time, and day.
-- Predict congestion for a future time and area.
+### 5.2 Report Types and Statuses
 
-Define forecast horizon, prediction interval, confidence/uncertainty representation, model version, and behaviour when historical data is insufficient.
+Supported report types:
 
-### 5.3 Construction & Incidents
+- `construction`
+- `accident`
+- `other_traffic`
 
-Candidate operations:
+Supported report statuses:
 
-- List active construction and incident reports in an area.
-- Retrieve a report by identifier.
-- Create, update, resolve, or close a report if user reporting is in scope.
+- `active`
+- `resolved`
+- `completed`
+- `inaccurate`
+- `withdrawn`
 
-Define report ownership, status lifecycle, validation, duplicate handling, and moderation rules.
+New reports are created with `active` status. Reports can transition between permitted statuses according to the documented lifecycle. Withdrawal is a soft-delete operation; withdrawn reports are excluded from public retrieval.
 
-### 5.4 Parking Analytics
+### 5.3 Authentication and Authorization
 
-Candidate operations:
+- Public list and detail endpoints do not require authentication.
+- Creating, updating, and withdrawing reports require a verified bearer token.
+- Only the report owner or an authorized moderator may modify or withdraw a report.
+- User identity and roles are derived from verified token claims, not client-supplied request fields.
+- Ownership information and private audit records are not exposed in public report responses.
 
-- Retrieve parking availability and congestion for an area.
-- Retrieve price and fee information.
+### 5.4 Validation and Data Behaviour
 
-Define availability meaning, currency, fee units, update timestamp, and unknown/stale-data behaviour.
+- Geographic coordinates use WGS84 latitude and longitude.
+- Report descriptions must contain between 10 and 2,000 characters after trimming whitespace.
+- Report timestamps are generated or validated by the service according to the API contract.
+- Client-supplied ownership, identity, and server-managed status fields are rejected.
+- Report creation supports idempotency keys to prevent duplicate submissions caused by retries.
+- Public responses include source and data-freshness metadata.
+- Active reports that have not been updated for more than seven days are identified as stale.
 
-### 5.5 Weather Analytics
+Refer to the [S3 Construction & Incidents API Contract](contracts/S3-Construction-Incidents.md) for complete parameter definitions, schemas, status transitions, error responses, and examples.
 
-Candidate operations:
+## 6. Contract Validation
 
-- Retrieve current weather for a location.
-- Retrieve air-quality measurements and trends.
+Service contracts should be validated against their implementations and associated tests.
 
-Define units, pollutant identifiers, concentration units, observation timestamp, and provider attribution.
+Validation should cover:
 
-### 5.6 Transit Analytics
+- Required and optional request fields.
+- Data types, formats, and enumerations.
+- Geographic and numeric constraints.
+- Success response status codes and schemas.
+- Standard error responses and HTTP status codes.
+- Authentication and authorization requirements.
+- Idempotency and retry behaviour.
+- Pagination, sorting, and filtering.
+- Data freshness and availability behaviour.
+- Backward compatibility and contract changes.
 
-Candidate operations:
-
-- Retrieve transit status or service information for an area/route.
-- Retrieve relevant delays or service disruptions.
-
-Define route/stop identifiers, schedule versus real-time fields, time zone, and stale-data behaviour.
-
-### 5.7 Gasoline Analytics
-
-Candidate operations:
-
-- Retrieve station prices by area and fuel type.
-- Retrieve station details and last-updated timestamps.
-- Compare prices across stations.
-
-Define fuel-type enumeration, station identifier, currency, price unit, and update timestamp.
-
-## 6. OpenAPI and Contract Validation
-
-Where possible, expose an OpenAPI document from each FastAPI service and use it as the implementation reference.
-
-Validate:
-
-- Required and optional fields.
-- Types, formats, and enumerations.
-- Success and error responses.
-- Backward compatibility.
-- Example payloads.
-- Authentication requirements.
+Where possible, FastAPI services should expose OpenAPI specifications that reflect their implemented endpoints and schemas.
 
 ## 7. Contract Change Process
 
-1. Propose the change and identify consumers.
-2. Update the contract and examples.
-3. Review compatibility and versioning impact.
-4. Update implementation and tests.
-5. Coordinate consumer updates.
-6. Record the release/commit that introduced the change.
+Changes to service interfaces should follow this process:
+
+1. Propose the change and identify affected service consumers.
+2. Update the relevant service-specific contract and examples.
+3. Review compatibility, validation, and versioning implications.
+4. Update the service implementation and associated tests.
+5. Coordinate any required consumer or gateway changes.
+6. Record the change in the relevant documentation and release commit.
+
+## 8. Related Documentation
+
+- [API Standards](API-Standards.md) – Shared API conventions and response standards.
+- [S3 Construction & Incidents API Contract](contracts/S3-Construction-Incidents.md) – Detailed S3 endpoint and schema definitions.
+- [S3 Construction & Incidents Architecture](../architecture/S3-Construction-Incidents.md) – Internal service architecture.
+- [S3 Construction & Incidents README](../../services/construction-incidents/README.md) – Local setup, configuration, and execution instructions.
+- [Testing and Validation](../Testing-and-Validation.md) – Project-level testing and validation approach.

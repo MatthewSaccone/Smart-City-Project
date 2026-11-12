@@ -523,7 +523,7 @@ components:
               retryable: false
               source: service
     ResourceConflict:
-      description: The requested state transition or idempotency-key use conflicts with existing state.
+      description: A resource state conflict or reuse of an idempotency key with a different request body.
       headers:
         X-Request-ID:
           $ref: '#/components/headers/RequestId'
@@ -531,14 +531,25 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
-          example:
-            error:
-              code: RESOURCE_CONFLICT
-              message: The requested state transition or idempotency-key use conflicts with existing state.
-              request_id: req-example-001
-              details: []
-              retryable: false
-              source: service
+          examples:
+            resource_conflict:
+              value:
+                error:
+                  code: RESOURCE_CONFLICT
+                  message: The requested operation conflicts with existing resource state.
+                  request_id: req-example-001
+                  details: []
+                  retryable: false
+                  source: service
+            idempotency_conflict:
+              value:
+                error:
+                  code: IDEMPOTENCY_KEY_CONFLICT
+                  message: The idempotency key was already used with a different request.
+                  request_id: req-example-002
+                  details: []
+                  retryable: false
+                  source: service
     ValidationFailed:
       description: The submitted values violate documented constraints.
       headers:
@@ -717,7 +728,6 @@ components:
           - resolved
           - completed
           - inaccurate
-          - withdrawn
         location:
           $ref: '#/components/schemas/Coordinate'
         description:

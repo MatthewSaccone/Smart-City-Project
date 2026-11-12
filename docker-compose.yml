@@ -2,6 +2,57 @@
 name: smart-city-microservices
 
 services:
+  # Dedicated PostgreSQL database for Keycloak
+  keycloak-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?Set KEYCLOAK_DB_PASSWORD in .env}
+
+    volumes:
+      - keycloak-postgres-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U keycloak -d keycloak
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  # Shared identity provider for all seven microservices
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.7
+    command:
+      - start-dev
+      - --http-port=8080
+
+    restart: unless-stopped
+
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set KEYCLOAK_ADMIN_PASSWORD in .env}
+
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?Set KEYCLOAK_DB_PASSWORD in .env}
+
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: http://localhost:8088
+      KC_HOSTNAME_STRICT: "false"
+
+    depends_on:
+      keycloak-postgres:
+        condition: service_healthy
+
+    ports:
+      - "127.0.0.1:8088:8080"
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -22,6 +73,33 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
+
+  
+  # Dedicated PostgreSQL/PostGIS database for Construction & Incidents
+  incidents-postgres:
+    image: postgis/postgis:16-3.5
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: smart_city_incidents
+      POSTGRES_USER: incidents_user
+      POSTGRES_PASSWORD: ${INCIDENTS_POSTGRES_PASSWORD:?Set INCIDENTS_POSTGRES_PASSWORD in .env}
+
+    ports:
+      - "127.0.0.1:5433:5432"
+
+    volumes:
+      - incidents-postgres-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U incidents_user -d smart_city_incidents
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
 
   # First registry API instance
   registry-1:
@@ -148,15 +226,30 @@ services:
       dockerfile: construction-incidents/Dockerfile
     restart: unless-stopped
     environment:
-      APP_ENV: development
+      APP_ENV: ${APP_ENV:-production}
       REGISTRY_URL: http://service-registry:8080
       REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
       REGISTRY_ADVERTISED_ENDPOINT: http://construction-incidents:8080
+
+      INCIDENTS_DATABASE_URL: postgresql://incidents_user:${INCIDENTS_POSTGRES_PASSWORD:?Set INCIDENTS_POSTGRES_PASSWORD in .env}@incidents-postgres:5432/smart_city_incidents
+
+      JWT_ALLOW_INSECURE_JWKS: ${JWT_ALLOW_INSECURE_JWKS:-false}
+      JWT_ISSUER: ${JWT_ISSUER:-}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-}
+      JWT_JWKS_URL: ${JWT_JWKS_URL:-}
+      JWT_ROLE_CLAIM: ${JWT_ROLE_CLAIM:-roles}
+      JWT_MODERATOR_ROLE: ${JWT_MODERATOR_ROLE:-moderator}
+      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-30}
+      JWT_JWKS_TIMEOUT_SECONDS: ${JWT_JWKS_TIMEOUT_SECONDS:-5}
+
     depends_on:
       service-registry:
         condition: service_healthy
+      incidents-postgres:
+        condition: service_healthy
     ports:
       - "8083:8080"
+
 
   # Parking analytics
   parking-analytics:
@@ -229,3 +322,5 @@ services:
 volumes:
   registry-data:
   postgres-data:
+  incidents-postgres-data:
+  keycloak-postgres-data:
