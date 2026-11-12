@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from shared.registry_client import RegistryClient
+from app.ingestion import poller
+from app.routes import router
 
 
 logging.basicConfig(level=logging.INFO)
@@ -50,10 +52,17 @@ async def lifespan(app: FastAPI):
 
     app.state.registry_client = registry_client
 
+    # T089: start polling the traffic source, if one was configured.
+    if poller.source_url:
+        poller.start()
+
     try:
         yield
 
     finally:
+        if poller.source_url:
+            poller.stop()
+
         if registry_client is not None:
             await registry_client.stop()
 
@@ -63,6 +72,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.include_router(router)
 
 
 @app.get("/health")
