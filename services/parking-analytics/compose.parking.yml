@@ -2,8 +2,10 @@
 services:
   parking-analytics:
     environment:
-      PARKING_INTERNAL_CLIENTS: ${PARKING_INTERNAL_CLIENTS:-[]}
       PARKING_OCCUPANCY_MODE: ${PARKING_OCCUPANCY_MODE:-fixture}
+      PARKING_REFRESH_SECONDS: ${PARKING_REFRESH_SECONDS:-5}
+      PARKING_RETRY_MAX_SECONDS: ${PARKING_RETRY_MAX_SECONDS:-60}
+      PARKING_CACHE_RETENTION_SECONDS: ${PARKING_CACHE_RETENTION_SECONDS:-86400}
       PARKING_CACHE_PATH: /app/data/parking.sqlite
     volumes:
       - parking-snapshots:/app/data

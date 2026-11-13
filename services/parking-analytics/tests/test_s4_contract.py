@@ -25,6 +25,7 @@ def validate(response, schema):
     ("/v1/parking/facilities/demo-central", "FacilityDetailResponse"),
     ("/v1/parking/facilities/demo-north", "FacilityDetailResponse"),
     ("/health", "HealthResponse"), ("/ready", "ReadinessResponse"),
+    ("/v1/parking/ingestion/status", "IngestionStatus"),
 ])
 def test_success_responses_match_adopted_openapi(client, path, schema):
     response = client.get(path, params=BOUNDS if path.endswith("facilities") else None)
@@ -91,10 +92,15 @@ def test_filter_sort_pagination_and_unknown_is_not_available(client):
     assert [item["facility_id"] for item in response.json()["items"]] == ["demo-north", "demo-east", "demo-central"]
 
 
-@pytest.mark.parametrize("headers,status", [({}, 401),
-    ({"Authorization": "Bearer invalid"}, 401), ({"X-Registry-API-Key": "test-key"}, 401),
-    ({"Authorization": "Bearer test-reader-token-long-enough"}, 403)])
-def test_estimator_authentication_and_permission(client, headers, status):
+@pytest.mark.parametrize("caller,status", [("anonymous", 401), ("invalid", 401), ("registry", 401), ("reader", 403)])
+def test_estimator_authentication_and_permission(client, caller, status):
+    headers = {"Authorization": ""}
+    if caller == "invalid":
+        headers["Authorization"] = "Bearer invalid"
+    elif caller == "registry":
+        headers["X-Registry-API-Key"] = "test-key"
+    elif caller == "reader":
+        headers["Authorization"] = client.headers["Authorization"]
     response = client.post("/v1/parking/occupancy/estimate", json={"observations": []}, headers=headers)
     assert response.status_code == status
     validate(response, "ErrorResponse")
@@ -134,6 +140,9 @@ def test_generated_operation_ids_and_service_security(client):
     assert schema["paths"]["/v1/parking/facilities"]["get"]["operationId"] == "searchParkingFacilities"
     assert schema["paths"]["/v1/parking/facilities/{facility_id}"]["get"]["operationId"] == "getParkingFacility"
     assert schema["paths"]["/v1/parking/occupancy/estimate"]["post"]["security"] == [{"ServiceBearer": []}]
+    for path in ("/v1/parking/facilities", "/v1/parking/facilities/{facility_id}", "/v1/parking/ingestion/status"):
+        assert schema["paths"][path]["get"]["security"] == [{"ServiceBearer": []}]
+        assert CONTRACT["paths"][path]["get"]["security"] == [{"ServiceBearer": []}]
 
 
 def test_incompatible_body_and_noncontract_timestamp_types(client):

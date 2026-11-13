@@ -1,38 +1,22 @@
-"""Configured internal credentials for the local demo; no platform issuer is invented."""
-
-import json
-import os
-import secrets
+"""S4 trusted JWT identity and internal-estimator permission checks."""
 
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
+from shared.auth import JWTSettings, TokenVerifier, authenticate, Principal
 
 bearer = HTTPBearer(auto_error=False, scheme_name="ServiceBearer")
 
 
-def load_clients():
-    clients = json.loads(os.getenv("PARKING_INTERNAL_CLIENTS", "[]"))
-    if not isinstance(clients, list):
-        raise ValueError("PARKING_INTERNAL_CLIENTS must be a list")
-    for client in clients:
-        if (not isinstance(client, dict) or not isinstance(client.get("token"), str)
-                or len(client["token"]) < 24 or not client["token"].isascii()
-                or not isinstance(client.get("permissions"), list)
-                or not all(isinstance(permission, str) for permission in client["permissions"])):
-            raise ValueError("Invalid internal client configuration")
-        if client["token"] == os.getenv("REGISTRY_API_KEY"):
-            raise ValueError("Estimator credential must differ from registry credential")
-    return clients
+def configure_auth(app):
+    app.state.token_verifier = TokenVerifier(JWTSettings.from_env())
 
 
-def require_estimator(request: Request,
-                      credentials: HTTPAuthorizationCredentials | None = Depends(bearer)):
-    supplied = credentials.credentials if credentials else ""
-    if supplied and supplied.isascii():
-        for client in request.app.state.internal_clients:
-            if secrets.compare_digest(supplied, client["token"]):
-                if "parking:estimate" not in client["permissions"]:
-                    raise HTTPException(403, "Internal client lacks parking:estimate permission")
-                return
-    raise HTTPException(401, "Valid internal bearer credential required", headers={"WWW-Authenticate": "Bearer"})
+def get_current_principal(request: Request,
+                          credentials: HTTPAuthorizationCredentials | None = Depends(bearer)) -> Principal:
+    return authenticate(request, credentials)
+
+
+def require_estimator(principal: Principal = Depends(get_current_principal)):
+    if not principal.has_permission("parking:estimate"):
+        raise HTTPException(403, "Internal client lacks parking:estimate permission")
+    return principal

@@ -9,7 +9,6 @@ import math
 import os
 from pathlib import Path
 import platform
-import secrets
 import socket
 import subprocess
 import sys
@@ -17,6 +16,9 @@ import tempfile
 import time
 
 import httpx
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from shared.testing_identity import EphemeralIdentity
 
 
 SERVICE = Path(__file__).resolve().parents[1]
@@ -49,7 +51,7 @@ async def measure(base_url, token, observation_count=1000, rounds=3):
     estimates = []
     active, peak, overlapping_reads = 0, 0, 0
     headers = {"Authorization": f"Bearer {token}"}
-    async with httpx.AsyncClient(base_url=base_url, timeout=30, trust_env=False,
+    async with httpx.AsyncClient(base_url=base_url, timeout=30, trust_env=False, headers=headers,
                                  limits=httpx.Limits(max_connections=100, max_keepalive_connections=100)) as client:
         (await client.get("/ready")).raise_for_status()
         # Explicit warm-up of every measured operation, including estimation.
@@ -122,16 +124,23 @@ async def measure(base_url, token, observation_count=1000, rounds=3):
 
 @asynccontextmanager
 async def local_server():
+    with EphemeralIdentity() as authority:
+        async with local_server_with_identity(authority) as result:
+            yield result
+
+
+@asynccontextmanager
+async def local_server_with_identity(authority):
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
         port = listener.getsockname()[1]
-    token = secrets.token_urlsafe(32)
+    token = authority.token(permissions=["parking:estimate"])
     env = os.environ.copy()
     env.update({"PYTHONPATH": os.pathsep.join([str(SERVICE), str(SERVICE.parent)]),
-                "REGISTRY_URL": "", "PARKING_INTERNAL_CLIENTS": json.dumps([
-                    {"token": token, "permissions": ["parking:estimate"]}]),
+                "REGISTRY_URL": "", **authority.environment(),
                 "PARKING_OCCUPANCY_MODE": "fixture"})
-    env.pop("PARKING_CACHE_PATH", None)
+    for name in ("PARKING_CACHE_PATH", "PARKING_DATABASE_URL", "PARKING_CATALOG_FILE", "PARKING_PRICING_FILE", "PARKING_OCCUPANCY_FILE"):
+        env.pop(name, None)
     with tempfile.TemporaryDirectory(prefix="scms-s4-benchmark-") as directory:
         log_path = Path(directory) / "server.log"
         with log_path.open("w", encoding="utf-8") as log:
@@ -157,7 +166,13 @@ async def local_server():
             yield base_url, token
         finally:
             if process.poll() is None:
-                process.terminate()
+                if os.name == "nt":
+                    # Windows venv launchers can have a separate Python child.
+                    # Stop only this benchmark's process tree before removing logs.
+                    await asyncio.to_thread(subprocess.run, ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                else:
+                    process.terminate()
             try:
                 await asyncio.to_thread(process.wait, timeout=10)
             except subprocess.TimeoutExpired:
@@ -187,7 +202,7 @@ if __name__ == "__main__":
     target = parser.add_mutually_exclusive_group(required=True)
     target.add_argument("--spawn-local", action="store_true")
     target.add_argument("--base-url")
-    parser.add_argument("--token-env", default="PARKING_ESTIMATOR_TOKEN")
+    parser.add_argument("--token-env", default="PARKING_ACCESS_TOKEN")
     parser.add_argument("--observations", type=int, default=1000)
     parser.add_argument("--rounds", type=int, default=3)
     parser.add_argument("--output")

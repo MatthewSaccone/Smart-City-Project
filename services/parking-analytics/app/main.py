@@ -1,7 +1,6 @@
 ﻿import logging
 import os
 import asyncio
-import math
 
 from contextlib import asynccontextmanager
 
@@ -9,10 +8,11 @@ from fastapi import FastAPI
 
 from shared.registry_client import RegistryClient
 from app.routes import router
-from app.auth import load_clients
+from app.auth import configure_auth
 from app.errors import install_errors
 from app.models import HealthResponse, ReadinessResponse
 from app.service import ParkingService
+from app.ingestion import ParkingIngestion
 
 
 logging.basicConfig(level=logging.INFO)
@@ -31,12 +31,10 @@ REGISTRY_API_KEY = os.getenv("REGISTRY_API_KEY")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     registry_client = None
-    app.state.internal_clients = load_clients()
+    configure_auth(app)
     app.state.parking = ParkingService(cache_path=os.getenv("PARKING_CACHE_PATH"))
-    await asyncio.to_thread(app.state.parking.refresh)
-    refresh_seconds = float(os.getenv("PARKING_REFRESH_SECONDS", "5"))
-    if not math.isfinite(refresh_seconds) or refresh_seconds <= 0:
-        raise ValueError("PARKING_REFRESH_SECONDS must be finite and positive")
+    app.state.ingestion = ParkingIngestion(app.state.parking)
+    await asyncio.to_thread(app.state.ingestion.refresh_once)
 
     if REGISTRY_URL:
         if not REGISTRY_API_KEY:
@@ -63,29 +61,22 @@ async def lifespan(app: FastAPI):
 
     app.state.registry_client = registry_client
 
-    async def refresh_loop():
-        while True:
-            await asyncio.sleep(refresh_seconds)
-            await asyncio.to_thread(app.state.parking.refresh)
-
-    refresh_task = asyncio.create_task(refresh_loop())
+    app.state.ingestion.start()
 
     try:
         yield
 
     finally:
-        refresh_task.cancel()
         try:
-            await refresh_task
-        except asyncio.CancelledError:
-            pass
-        if registry_client is not None:
-            await registry_client.stop()
+            await asyncio.to_thread(app.state.ingestion.close)
+        finally:
+            if registry_client is not None:
+                await registry_client.stop()
 
 
 app = FastAPI(
     title="Parking Analytics",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan,
 )
 

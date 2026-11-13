@@ -3,7 +3,7 @@
 | Property | Value |
 |---|---|
 | Document ID | `T008-S4-API` |
-| Version | `1.0` (initial contract) |
+| Version | `1.1` (JWT access migration and S4 T010 integration) |
 | Status | Adopted T008 interface design; provider integrations and domain implementation are separate delivery work |
 | Logical service ID | `parking-analytics` (S4) |
 | API version | `/v1` |
@@ -41,18 +41,19 @@ This contract defines the client-facing HTTP interface and one **restricted, com
 - Occupancy and pricing have **independent freshness metadata**: `is_live`, `is_stale`, `source`, `data_status`, and their relevant update times. `data_status` is one of `live`, `cached`, `simulated`, or `unavailable` for facility-facing snapshots. `is_live` is `true` only for a verified live-updating source; it is not synonymous with `is_stale: false`.
 - The `as_of` field means the time at which a response was evaluated; it does **not** replace `observed_at` or `source_updated_at`. If a data provider is unavailable, the service returns any usable known facility information and, where available, labeled cached prices/occupancy. Missing measurement and price fields must be `null` rather than fabricated. A stale estimate may be displayed but must not be presented as a live indication that parking is available.
 - Prices are **informational tariffs, not a guaranteed final charge or a booking quote**. All v1 prices are nonnegative decimal **CAD** amounts (ISO 4217 `CAD`). A rate specifies whether it is charged by `hour`, `day`, or `entry`; additional fees have an independent description. Unknown pricing is represented by `null`, not a zero-dollar rate. Rates and fee timestamps are displayed independently of occupancy timestamps.
-- Public read endpoints do not need end-user authentication. The batch estimation endpoint accepts privacy-sensitive observations and is **restricted to authenticated internal service clients** with the `parking:estimate` permission. The platform's trusted token issuer, validation rules, and distribution belong to the platform security specification. A Registry API key alone is not a valid end-user or estimator credential.
+- All S4 parking endpoints require a verified RS256 JWT from the same trusted issuer/audience as S2/S3. The batch estimation endpoint accepts privacy-sensitive observations and additionally requires the signed `parking:estimate` permission, granted only to approved internal service clients. A Registry API key, request header/body role, or old opaque demo credential cannot establish identity or permission. Operational probes remain accessible.
 - All errors use the common JSON `error` envelope with `X-Request-ID`; all successful responses include `X-Request-ID`. The service rejects undeclared request-body properties. A no-match search returns `200` with `items: []`, while an unknown facility ID returns `404`.
 
 ## 3. Endpoint inventory
 
 | Operation ID | Method and path | Purpose | Access | Success |
 |---|---|---|---|---|
-| `searchParkingFacilities` | `GET /v1/parking/facilities` | Geographic search and availability summary | Public read | `200` |
-| `getParkingFacility` | `GET /v1/parking/facilities/{facility_id}` | Facility detail, estimated occupancy, rates and fees | Public read | `200` |
+| `searchParkingFacilities` | `GET /v1/parking/facilities` | Geographic search and availability summary | Verified bearer JWT | `200` |
+| `getParkingFacility` | `GET /v1/parking/facilities/{facility_id}` | Facility detail, estimated occupancy, rates and fees | Verified bearer JWT | `200` |
 | `estimateParkingOccupancy` | `POST /v1/parking/occupancy/estimate` | Calculate occupancy from timestamped pseudonymous observations; no write | Restricted internal service | `200` |
 | `getHealth` | `GET /health` | Liveness probe | Monitoring access | `200` |
 | `getReadiness` | `GET /ready` | Readiness for facility-information and fallback operations | Monitoring access | `200` / `503` |
+| `getParkingIngestionStatus` | `GET /v1/parking/ingestion/status` | Independent stream/subscriber/cache health, no credentials or raw inputs | Verified bearer JWT | `200` |
 
 ### 3.1 Search parking facilities — FR1, FR2, QR1, QR2, QR4
 
@@ -260,7 +261,7 @@ All errors **MUST** return the common `error` envelope with `code`, `message`, `
 | HTTP | Error code / condition | Applies to |
 |---|---|---|
 | `400` | `BAD_REQUEST` — malformed request syntax or incompatible structure | All |
-| `401` | `AUTHENTICATION_REQUIRED` — missing/invalid internal token | Estimation |
+| `401` | `AUTHENTICATION_REQUIRED` — missing/invalid trusted bearer JWT | All parking operations |
 | `403` | `FORBIDDEN` — service client lacks `parking:estimate` | Estimation |
 | `404` | `NOT_FOUND` — unknown facility ID | Detail |
 | `409` | `RESOURCE_CONFLICT` — conflicting operation state (if applicable; no create endpoints in v1) | Reserved general status |
@@ -331,3 +332,29 @@ S4 MUST have **service-owned storage**, not a shared domain database or the Serv
 ## 8. Change control
 
 This interface follows `docs/api/API-Standards.md`. Breaking changes to request parameters, authentication requirements, field semantics, or response shapes require a new contract version or an explicitly approved compatibility migration. Implementation details may change without revising the API contract as long as externally observable behavior remains conformant.
+
+### Version 1.1 access and data-integration migration
+
+This branch implements the requested S4 JWT and T010 integration. Requiring JWTs on
+previously anonymous facility reads changes access policy. Review the migration with
+gateway/frontend/service consumers before deployment: retain `/v1` shapes, configure
+the same `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_JWKS_URL` as S2/S3, and update callers to
+send `Authorization: Bearer <access_token>`. `/health` and `/ready` remain accessible.
+Missing/invalid credentials return 401 with a bearer challenge, insufficient estimator
+permission returns 403, and unavailable required signing keys return retryable 503.
+There is no local opaque-token bypass. Signed `permissions`, `scope`, or the configured
+role claim may carry `parking:estimate`; the identity administrator must grant it
+only to approved internal service accounts.
+
+The [S4 T010 record](../../../services/parking-analytics/T010.md) defines normalized
+catalog/tariff/aggregate inputs, transactional `s4_parking_updated_v1` notifications
+on S4's own PostgreSQL, periodic/reconnect reconciliation, per-stream validation and
+bounded snapshot fallback. Fixture/file mode remains clearly simulated. Unchanged
+inputs do not change source or ingestion timestamps. Loss of occupancy does not
+discard catalog or rates. Occupancy retained beyond the configured maximum cache
+age becomes unknown; the 300-second observation-age rule remains independent.
+
+`GET /v1/parking/ingestion/status` is an authenticated, read-only operational extension.
+The three original analytics JSON responses and computations retain their existing
+shapes and semantics. The estimator remains computation-only and never writes the
+ingestion database or public aggregate cache.
