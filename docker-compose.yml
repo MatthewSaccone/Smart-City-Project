@@ -74,6 +74,23 @@ services:
       retries: 10
       start_period: 5s
 
+
+  # Dedicated PostgreSQL database for Live Traffic
+  live-traffic-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: smart_city_traffic
+      POSTGRES_USER: traffic_user
+      POSTGRES_PASSWORD: ${TRAFFIC_POSTGRES_PASSWORD:?Set TRAFFIC_POSTGRES_PASSWORD in .env}
+    volumes:
+      - live-traffic-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U traffic_user -d smart_city_traffic"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   
   # Dedicated PostgreSQL/PostGIS database for Construction & Incidents
   incidents-postgres:
@@ -187,17 +204,30 @@ services:
 
   # Live traffic analytics
   live-traffic:
+    image: smart-city-live-traffic:local
     build:
       context: ./services
       dockerfile: live-traffic/Dockerfile
     restart: unless-stopped
     environment:
-      APP_ENV: development
+      APP_ENV: ${APP_ENV:-production}
       REGISTRY_URL: http://service-registry:8080
       REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
       REGISTRY_ADVERTISED_ENDPOINT: http://live-traffic:8080
+      S1_DATABASE_URL: postgresql://traffic_user:${TRAFFIC_POSTGRES_PASSWORD:?Set TRAFFIC_POSTGRES_PASSWORD in .env}@live-traffic-postgres:5432/smart_city_traffic
+
+      JWT_ALLOW_INSECURE_JWKS: ${JWT_ALLOW_INSECURE_JWKS:-false}
+      JWT_ISSUER: ${JWT_ISSUER:-}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-}
+      JWT_JWKS_URL: ${JWT_JWKS_URL:-}
+      JWT_ROLE_CLAIM: ${JWT_ROLE_CLAIM:-roles}
+      JWT_MODERATOR_ROLE: ${JWT_MODERATOR_ROLE:-moderator}
+      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-30}
+      JWT_JWKS_TIMEOUT_SECONDS: ${JWT_JWKS_TIMEOUT_SECONDS:-5}
     depends_on:
       service-registry:
+        condition: service_healthy
+      live-traffic-postgres:
         condition: service_healthy
     ports:
       - "8081:8080"
@@ -322,5 +352,6 @@ services:
 volumes:
   registry-data:
   postgres-data:
+  live-traffic-postgres-data:
   incidents-postgres-data:
   keycloak-postgres-data:

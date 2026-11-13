@@ -9,13 +9,14 @@ Run from the repository root:
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 from fastapi.testclient import TestClient
 
 import app.ingestion as ingestion
 import app.main as main
+from app.auth import Principal, get_current_principal
 import app.routes as routes
 from app.broker import Broker
 from app.analytics import (
@@ -86,12 +87,60 @@ def post_moving_user(client, user_id, speed_kmh, latitude=LAT, longitude=LON,
 
 @pytest.fixture
 def client(monkeypatch):
-    """A test client with the registry switched off and an empty store."""
+    """A test client with registry disabled and a controlled test identity."""
     monkeypatch.setattr(main, "REGISTRY_URL", None)
     routes.store.clear()
-    with TestClient(main.app) as client:
-        yield client
-    routes.store.clear()
+
+    previous_overrides = main.app.dependency_overrides.copy()
+
+    principal = Principal(
+        subject="test-user-1",
+        roles=frozenset({"user"}),
+    )
+
+    main.app.dependency_overrides[get_current_principal] = (
+        lambda: principal
+    )
+
+    try:
+        with TestClient(main.app) as test_client:
+            test_client.principal = principal
+            yield test_client
+    finally:
+        main.app.dependency_overrides.clear()
+        main.app.dependency_overrides.update(previous_overrides)
+        routes.store.clear()
+    
+def set_test_identity(client, subject):
+    """Change the authenticated subject for an isolation test."""
+    principal = Principal(
+        subject=subject,
+        roles=frozenset({"user"}),
+    )
+    main.app.dependency_overrides[get_current_principal] = (
+        lambda: principal
+    )
+    client.principal = principal
+
+
+def test_protected_endpoints_reject_unauthenticated_requests(client):
+    main.app.dependency_overrides.pop(get_current_principal, None)
+
+    assert client.get("/v1/traffic/status").status_code == 401
+    assert client.get(
+        "/v1/traffic/congestion/area", params=AREA
+    ).status_code == 401
+    assert client.get(
+        "/v1/traffic/congestion/route", params=ROUTE
+    ).status_code == 401
+    assert client.post(
+        "/v1/traffic/locations",
+        json={
+            "user_id": "unauthenticated-device",
+            "latitude": LAT,
+            "longitude": LON,
+        },
+    ).status_code == 401
 
 
 AREA = {"latitude": LAT, "longitude": LON, "radius_m": 300}
@@ -167,6 +216,36 @@ def test_t017_only_users_inside_the_radius_are_counted():
     large = area_congestion(pings, LAT, LON, 3000, NOW)
     assert large["users_counted"] == 2
     assert large["average_speed_kmh"] == pytest.approx(30, abs=0.1)
+    
+    
+def test_authenticated_users_cannot_share_device_identity(client):
+    device_id = "shared-device"
+
+    first_response = client.post("/v1/traffic/locations", json={
+        "user_id": device_id,
+        "latitude": LAT,
+        "longitude": LON,
+    })
+    assert first_response.status_code == 201
+
+    set_test_identity(client, "test-user-2")
+
+    second_response = client.post("/v1/traffic/locations", json={
+        "user_id": device_id,
+        "latitude": LAT_1000M_NORTH,
+        "longitude": LON,
+    })
+    assert second_response.status_code == 201
+
+    cached_users = routes.store.get_all_pings(datetime.now(timezone.utc))
+
+    expected_ids = {
+        routes.scoped_user_id("test-user-1", device_id),
+        routes.scoped_user_id("test-user-2", device_id),
+    }
+
+    assert set(cached_users.keys()) == expected_ids
+    assert len(cached_users) == 2
 
 
 # ---------- T018: only the last 60 seconds counts as live ----------
@@ -392,6 +471,74 @@ def source_is_down():
     raise ConnectionError("the traffic source is not answering")
 
 
+def make_lock_connection():
+    """Create a mock PostgreSQL connection for advisory-lock tests."""
+    connection = MagicMock()
+    cursor = MagicMock()
+    cursor.fetchone.return_value = (1,)
+    connection.cursor.return_value.__enter__.return_value = cursor
+    return connection
+
+
+def test_t089_poller_acquires_lock_before_polling_and_releases_on_stop():
+    database = Mock()
+    connection = make_lock_connection()
+    database.try_acquire_advisory_lock.return_value = connection
+
+    poller = ingestion.FeedPoller("http://feed.test/feed", database)
+    poller.fetch_locations = lambda: []
+
+    assert poller._ensure_lock() is True
+    assert poller.source_status == "waiting"
+
+    assert poller.poll_once() == 0
+    assert poller.source_status == "ok"
+    database.try_acquire_advisory_lock.assert_called_once_with(
+        poller.ADVISORY_LOCK_ID
+    )
+
+    poller.stop()
+    connection.close.assert_called_once()
+
+
+def test_t089_poller_enters_standby_when_another_replica_holds_lock():
+    database = Mock()
+    database.try_acquire_advisory_lock.return_value = None
+
+    poller = ingestion.FeedPoller("http://feed.test/feed", database)
+    fetch = Mock()
+    poller.fetch_locations = fetch
+
+    assert poller._ensure_lock() is False
+    assert poller.source_status == "standby"
+    fetch.assert_not_called()
+
+
+def test_t089_poller_reacquires_lock_after_connection_loss():
+    database = Mock()
+    first_connection = make_lock_connection()
+    second_connection = make_lock_connection()
+    database.try_acquire_advisory_lock.side_effect = [
+        first_connection,
+        second_connection,
+    ]
+
+    poller = ingestion.FeedPoller("http://feed.test/feed", database)
+
+    assert poller._ensure_lock() is True
+    assert poller.lock_connection is first_connection
+
+    # Simulate the first PostgreSQL session becoming unusable.
+    first_connection.cursor.side_effect = ConnectionError("connection lost")
+
+    assert poller._ensure_lock() is True
+    assert first_connection.close.called
+    assert poller.lock_connection is second_connection
+
+    poller.stop()
+    second_connection.close.assert_called_once()
+
+
 def test_t089_broker_delivers_each_message_to_every_subscriber_of_the_topic():
     broker = Broker()
     first = []
@@ -427,7 +574,9 @@ def test_t089_posted_ping_reaches_the_cache_through_the_broker(client):
         "user_id": "u1", "latitude": LAT, "longitude": LON})
 
     assert ingestion.broker.published_count == before + 1
-    assert "u1" in routes.store.get_all_pings(datetime.now(timezone.utc))
+    assert routes.scoped_user_id(
+        "test-user-1", "u1"
+    ) in routes.store.get_all_pings(datetime.now(timezone.utc))
 
 
 def test_t089_polled_locations_are_published_cached_and_analysed(client, monkeypatch):
@@ -553,17 +702,20 @@ def test_t089_status_when_no_source_is_configured(client):
     assert status["newest_ping_at"] is None
 
 
+
 def test_t089_poller_starts_and_stops_with_the_service_only_when_configured(monkeypatch):
     monkeypatch.setattr(main, "REGISTRY_URL", None)
 
     configured = Mock(source_url="http://feed.test/feed")
-    monkeypatch.setattr(main, "poller", configured)
+    monkeypatch.setattr(ingestion, "poller", configured)
+
     with TestClient(main.app):
         configured.start.assert_called_once()
     configured.stop.assert_called_once()
 
     not_configured = Mock(source_url=None)
-    monkeypatch.setattr(main, "poller", not_configured)
+    monkeypatch.setattr(ingestion, "poller", not_configured)
+
     with TestClient(main.app):
         pass
     not_configured.start.assert_not_called()
@@ -608,7 +760,9 @@ def test_ping_without_timestamp_uses_the_arrival_time(client):
     response = client.post("/v1/traffic/locations", json={
         "user_id": "u1", "latitude": LAT, "longitude": LON})
     assert response.status_code == 201
-    saved = datetime.fromisoformat(response.json()["timestamp"])
+    saved = datetime.fromisoformat(
+        response.json()["timestamp"].replace("Z", "+00:00")
+    )
     assert before <= saved <= datetime.now(timezone.utc)
 
 

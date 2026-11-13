@@ -84,14 +84,19 @@ def publish_location(user_id, latitude, longitude, timestamp, source, now):
     broker.publish(LOCATION_TOPIC, message)
 
 
-class FeedPoller:
-    """Asks a traffic source for new locations every few seconds."""
 
-    def __init__(self, source_url):
+class FeedPoller:
+    """Polls a traffic source only while holding the shared PostgreSQL lock."""
+
+    ADVISORY_LOCK_ID = 4471001
+
+    def __init__(self, source_url, database=None):
         self.source_url = source_url
+        self.database = database
+        self.lock_connection = None
 
         if source_url:
-            self.source_status = "waiting"      # no poll has finished yet
+            self.source_status = "waiting"
         else:
             self.source_status = "not_configured"
 
@@ -102,8 +107,12 @@ class FeedPoller:
         self.thread = None
         self.stop_event = threading.Event()
 
+    def set_database(self, database):
+        """Configure the shared database used for poller coordination."""
+        self.database = database
+
     def fetch_locations(self):
-        """Download the newest locations from the source. Raises an error on failure."""
+        """Download the newest locations from the source."""
         response = httpx.get(self.source_url, timeout=POLL_TIMEOUT_SECONDS)
         response.raise_for_status()
 
@@ -113,18 +122,77 @@ class FeedPoller:
 
         return locations
 
+    def _release_lock(self):
+        """Close the lock-owning session, releasing its advisory lock."""
+        if self.lock_connection is not None:
+            try:
+                self.lock_connection.close()
+            except Exception:
+                logger.exception("Failed to close feed-poller lock connection")
+            finally:
+                self.lock_connection = None
+
+    def _check_lock(self):
+        """Check that the PostgreSQL session holding our lock is alive."""
+        if self.database is None:
+            return True
+
+        if self.lock_connection is None:
+            return False
+
+        try:
+            with self.lock_connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                return cursor.fetchone() == (1,)
+        except Exception:
+            logger.warning("Feed-poller database lock connection was lost")
+            self._release_lock()
+            return False
+
+    def _ensure_lock(self):
+        """Acquire the polling lock or remain a standby replica."""
+        if self.database is None:
+            return True
+
+        if self._check_lock():
+            return True
+
+        try:
+            connection = self.database.try_acquire_advisory_lock(
+                self.ADVISORY_LOCK_ID
+            )
+            if connection is None:
+                self.source_status = "standby"
+                return False
+
+            self.lock_connection = connection
+            self.source_status = "waiting"
+            logger.info("Acquired shared feed-poller advisory lock")
+            return True
+
+        except Exception:
+            self.source_status = "unavailable"
+            logger.exception("Could not acquire feed-poller advisory lock")
+            return False
+
     def poll_once(self):
-        """Do one poll. Returns how many location updates were published."""
+        """Do one poll, provided this replica owns the polling lock."""
+        if not self._check_lock():
+            return 0
+
         now = datetime.now(timezone.utc)
         self.last_poll_at = now
 
         try:
             locations = self.fetch_locations()
         except Exception as error:
-            # The source is down, slow, or sent something we cannot read.
-            self.consecutive_failures = self.consecutive_failures + 1
+            self.consecutive_failures += 1
             self.source_status = "unavailable"
             logger.warning("Traffic source poll failed: %s", error)
+            return 0
+
+        # Do not publish data if the database session was lost during fetching.
+        if not self._check_lock():
             return 0
 
         self.consecutive_failures = 0
@@ -134,48 +202,71 @@ class FeedPoller:
         published = 0
 
         for item in locations:
-            # Check each location the same way a POST request is checked.
             try:
                 ping = LocationPing.model_validate(item)
             except ValidationError:
                 continue
 
-            if ping.timestamp is None:
-                timestamp = now
-            else:
-                timestamp = ping.timestamp
+            timestamp = ping.timestamp if ping.timestamp is not None else now
 
             if find_timestamp_problem(timestamp, now) is not None:
                 continue
 
-            publish_location(ping.user_id, ping.latitude, ping.longitude,
-                             timestamp, "feed", now)
-            published = published + 1
+            publish_location(
+                ping.user_id,
+                ping.latitude,
+                ping.longitude,
+                timestamp,
+                "feed",
+                now,
+            )
+            published += 1
 
         return published
 
     def run_forever(self):
-        """The loop the background thread runs: poll, wait, poll, wait..."""
-        while not self.stop_event.is_set():
-            try:
-                self.poll_once()
-            except Exception:
-                logger.exception("Unexpected error while polling")
+        """Acquire the lock when available, then poll at the configured interval."""
+        try:
+            while not self.stop_event.is_set():
+                if self._ensure_lock():
+                    try:
+                        self.poll_once()
+                    except Exception:
+                        logger.exception("Unexpected error while polling")
 
-            # Wait for the next poll, but wake up at once if stop() is called.
-            self.stop_event.wait(POLL_INTERVAL_SECONDS)
+                self.stop_event.wait(POLL_INTERVAL_SECONDS)
+        finally:
+            self._release_lock()
 
     def start(self):
+        if self.thread is not None and self.thread.is_alive():
+            return
+
         self.stop_event.clear()
-        self.thread = threading.Thread(target=self.run_forever, daemon=True)
+        self.thread = threading.Thread(
+            target=self.run_forever,
+            daemon=True,
+        )
         self.thread.start()
         logger.info("Feed poller started for %s", self.source_url)
 
+    
     def stop(self):
         self.stop_event.set()
+
         if self.thread is not None:
-            self.thread.join(timeout=POLL_TIMEOUT_SECONDS + 1)
+            self.thread.join(timeout=POLL_TIMEOUT_SECONDS + 2)
+
+            if self.thread.is_alive():
+                logger.warning(
+                    "Feed poller has not stopped yet; "
+                    "its worker will release the advisory lock on exit"
+                )
+                return
+
             self.thread = None
+
+        self._release_lock()
 
 
 # Created when the service starts. main.py starts it only if a URL was given.

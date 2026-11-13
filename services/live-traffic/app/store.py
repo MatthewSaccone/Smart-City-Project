@@ -15,6 +15,8 @@ which is fine because live traffic data is only useful for a short time.
 import threading
 from datetime import timedelta
 
+from psycopg import connect
+from psycopg.rows import dict_row
 from app.settings import CACHE_WINDOW_SECONDS
 
 
@@ -93,3 +95,86 @@ class LocationStore:
         """Delete everything. Used by the tests to start from empty."""
         with self.lock:
             self.pings_by_user = {}
+
+
+
+class PostgresLocationStore:
+    """Shared PostgreSQL-backed location storage for service replicas."""
+
+    def __init__(self, database):
+        self.database = database
+
+    def add_ping(self, user_id, latitude, longitude, timestamp, now):
+        """Insert a ping, ignoring duplicates, and prune expired records."""
+        with connect(
+            self.database.database_url,
+            connect_timeout=self.database.CONNECT_TIMEOUT_SECONDS,
+        ) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO traffic_location_pings
+                        (user_id, latitude, longitude, timestamp)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (user_id, timestamp) DO NOTHING
+                    """,
+                    (user_id, latitude, longitude, timestamp),
+                )
+
+                cursor.execute(
+                    """
+                    DELETE FROM traffic_location_pings
+                    WHERE timestamp < %s
+                    """,
+                    (now - timedelta(seconds=CACHE_WINDOW_SECONDS),),
+                )
+
+    def get_all_pings(self, now):
+        """Return unexpired pings grouped by user, oldest first."""
+        with connect(
+            self.database.database_url,
+            connect_timeout=self.database.CONNECT_TIMEOUT_SECONDS,
+            row_factory=dict_row,
+        ) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    DELETE FROM traffic_location_pings
+                    WHERE timestamp < %s
+                    """,
+                    (now - timedelta(seconds=CACHE_WINDOW_SECONDS),),
+                )
+
+                cursor.execute(
+                    """
+                    SELECT user_id, latitude, longitude, timestamp
+                    FROM traffic_location_pings
+                    WHERE timestamp >= %s
+                    ORDER BY user_id, timestamp
+                    """,
+                    (now - timedelta(seconds=CACHE_WINDOW_SECONDS),),
+                )
+
+                rows = cursor.fetchall()
+
+        pings_by_user = {}
+
+        for row in rows:
+            pings_by_user.setdefault(row["user_id"], []).append(
+                {
+                    "latitude": row["latitude"],
+                    "longitude": row["longitude"],
+                    "timestamp": row["timestamp"],
+                }
+            )
+
+        return pings_by_user
+
+    def clear(self):
+        """Delete all location pings."""
+        with connect(
+            self.database.database_url,
+            connect_timeout=self.database.CONNECT_TIMEOUT_SECONDS,
+        ) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("DELETE FROM traffic_location_pings")
