@@ -1,5 +1,9 @@
 # S4 T039–T045 verification — November 11, 2026
 
+This is the original T039–T045 delivery record. The subsequent JWT/T010 integration
+updates authentication, source refresh and storage; see [T010.md](T010.md),
+[AUTHENTICATION.md](AUTHENTICATION.md) and [current evidence](verification-auth-t010.json).
+
 ## Git and inspection baseline
 
 The initial working tree was clean on `feature/aaliyan-t009-t039-t041` at `3662ba6`,

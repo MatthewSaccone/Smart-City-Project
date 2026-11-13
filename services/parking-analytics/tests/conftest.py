@@ -1,23 +1,32 @@
-import json
+import os
 
 import pytest
 from fastapi.testclient import TestClient
 
 import app.main as main
+from shared.testing_identity import EphemeralIdentity
+
+
+@pytest.fixture(scope="session")
+def identity():
+    with EphemeralIdentity() as authority:
+        yield authority
 
 
 @pytest.fixture(autouse=True)
-def isolated_configuration(monkeypatch):
+def isolated_configuration(monkeypatch, identity):
     monkeypatch.setattr(main, "REGISTRY_URL", None)
-    for name in ("PARKING_CACHE_PATH", "PARKING_OCCUPANCY_FILE", "PARKING_OCCUPANCY_MODE", "PARKING_REFRESH_SECONDS"):
-        monkeypatch.delenv(name, raising=False)
-    monkeypatch.setenv("PARKING_INTERNAL_CLIENTS", json.dumps([
-        {"token": "test-estimator-token-long-enough", "permissions": ["parking:estimate"]},
-        {"token": "test-reader-token-long-enough", "permissions": []},
-    ]))
+    for name in tuple(os.environ):
+        if name.startswith(("PARKING_", "JWT_")):
+            monkeypatch.delenv(name, raising=False)
+    for name, value in identity.environment().items():
+        monkeypatch.setenv(name, value)
+    identity.available = True
+    from test_parking import ESTIMATE_HEADERS
+    monkeypatch.setitem(ESTIMATE_HEADERS, "Authorization", "Bearer " + identity.token(permissions=["parking:estimate"]))
 
 
 @pytest.fixture
-def client():
-    with TestClient(main.app) as client:
+def client(identity):
+    with TestClient(main.app, headers={"Authorization": "Bearer " + identity.token()}) as client:
         yield client

@@ -1,0 +1,23 @@
+# Optional S4-owned PostgreSQL ingestion store; combine with root + compose.parking.yml.
+services:
+  parking-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: parking_analytics
+      POSTGRES_DB: parking_analytics
+      POSTGRES_PASSWORD: ${PARKING_DB_PASSWORD:?Set PARKING_DB_PASSWORD}
+    volumes:
+      - parking-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U parking_analytics -d parking_analytics]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  parking-analytics:
+    environment:
+      PARKING_DATABASE_URL: postgresql://parking_analytics:${PARKING_DB_PASSWORD:?Set PARKING_DB_PASSWORD}@parking-postgres:5432/parking_analytics
+    depends_on:
+      parking-postgres:
+        condition: service_healthy
+volumes:
+  parking-postgres-data:

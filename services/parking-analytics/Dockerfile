@@ -7,6 +7,7 @@ COPY parking-analytics/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY parking-analytics/app/ ./app/
+COPY parking-analytics/tools/import_dataset.py ./tools/import_dataset.py
 
 COPY shared/ ./shared/
 

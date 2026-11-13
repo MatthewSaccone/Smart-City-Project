@@ -33,10 +33,17 @@ class ParkingService:
         self.feed_available = False
         self.snapshot = None
         self.cache = None
+        self.catalog_source = "simulated_fixture"
+        self.pricing_available = True
+        self.database_mode = bool(os.getenv("PARKING_DATABASE_URL"))
+        self.occupancy_retention = None
         try:
-            self.facilities, observations, as_of = load_demo()
-            self.catalog_available = True
-            if self.source is None:
+            if self.database_mode:
+                self.source = self.source or UnavailableSource()
+            else:
+                self.facilities, observations, as_of = load_demo()
+                self.catalog_available = True
+            if self.source is None and not self.database_mode:
                 mode = os.getenv("PARKING_OCCUPANCY_MODE", "fixture")
                 if mode == "fixture":
                     self.source = FixtureSource(observations, as_of)
@@ -50,18 +57,20 @@ class ParkingService:
             logger.warning("Catalog/source setup failed: %s", type(exc).__name__)
             self.source = UnavailableSource()
         try:
-            self.prices = load_prices(self.clock())
+            if not self.database_mode:
+                self.prices = load_prices(self.clock())
         except Exception as exc:
             logger.warning("Tariff load unavailable: %s", type(exc).__name__)
         try:
             self.cache = AggregateCache(cache_path)
-            self.snapshot = self.cache.read()
+            self.snapshot = self.cache.read() if not self.database_mode else None
             if self.snapshot is not None:
                 self._validate_feed(self.snapshot)
         except Exception as exc:
             logger.warning("Aggregate cache unavailable: %s", type(exc).__name__)
             self.snapshot = None
-            self.cache = AggregateCache()
+            if self.cache is None:
+                self.cache = AggregateCache()
 
     def require_catalog(self):
         if not self.catalog_available:
@@ -83,18 +92,23 @@ class ParkingService:
                   or item.occupancy_ratio is None
                   or abs(item.occupancy_ratio - occupied / facility.capacity) > 0.0001):
                 raise ValueError("Aggregate does not match catalog capacity")
+            if item.latest_observation_at and item.latest_observation_at > self.clock():
+                raise ValueError("Future occupancy measurement")
 
     def refresh(self):
         if not self.catalog_available:
             return
         try:
             feed = self.source.load(self.facilities)
-            self._validate_feed(feed)
             with self.lock:
+                self._validate_feed(feed)
                 if self.snapshot is None or feed.model_dump() != self.snapshot.model_dump(exclude={"service_updated_at"}):
                     snapshot = CachedSnapshot(**feed.model_dump(), service_updated_at=self.clock())
-                    self.cache.write(snapshot)
                     self.snapshot = snapshot
+                    try:
+                        self.cache.write(snapshot)
+                    except Exception as exc:
+                        logger.warning("Aggregate persistence unavailable: %s", type(exc).__name__)
                 self.feed_available = True
         except Exception as exc:
             with self.lock:
@@ -105,6 +119,9 @@ class ParkingService:
         with self.lock:
             cached = self.snapshot
             item = next((item for item in cached.items if item.facility_id == facility.facility_id), None) if cached else None
+            if cached and self.occupancy_retention is not None and not (
+                    0 <= (now - cached.service_updated_at).total_seconds() <= self.occupancy_retention):
+                item = None
             if item is None or item.estimated_occupied_spaces is None:
                 occupancy = OccupancySnapshot()
             else:
@@ -119,6 +136,8 @@ class ParkingService:
                 )
             price = self.prices.get(facility.facility_id, PricingDetails())
             price = price.model_copy(update={"is_stale": stale(price.source_updated_at, now, PRICE_FRESH_SECONDS)})
+            if not self.pricing_available and price.data_status == "live":
+                price = price.model_copy(update={"is_live": False, "data_status": "cached"})
         availability = "unknown"
         if facility.facility_status == "closed":
             availability = "closed"
@@ -127,4 +146,4 @@ class ParkingService:
             availability = "available" if occupancy.estimated_available_spaces > 0 else "full"
         return FacilityDetailResponse(facility=facility, availability_status=availability,
                                       occupancy=occupancy, pricing=price, as_of=now,
-                                      facility_source="simulated_fixture")
+                                      facility_source=self.catalog_source)

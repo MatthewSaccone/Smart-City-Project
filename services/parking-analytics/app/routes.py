@@ -4,22 +4,30 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 
 from app.analytics import estimate_occupancy
-from app.auth import require_estimator
+from app.auth import require_estimator, get_current_principal
 from app.models import (
     AvailabilityStatus, ErrorResponse, EstimateRequest, EstimateResponse,
     FacilityDetailResponse, FacilityStatus, Pagination, PricingOverview, SearchItem, SearchResponse,
 )
 from app.service import OCCUPANCY_FRESH_SECONDS, stale
+from app.ingestion import IngestionStatus
 
 
 ERROR_RESPONSES = {code: {"model": ErrorResponse} for code in
                    (400, 401, 403, 404, 422, 429, 500, 502, 503, 504)}
-router = APIRouter(prefix="/v1/parking", tags=["Parking"], responses=ERROR_RESPONSES)
+router = APIRouter(prefix="/v1/parking", tags=["Parking"], responses=ERROR_RESPONSES,
+                   dependencies=[Depends(get_current_principal)])
 
 
 def validate_query(request, allowed):
     if any(key not in allowed or len(request.query_params.getlist(key)) > 1 for key in request.query_params):
         raise HTTPException(422, "Unsupported or repeated query parameter")
+
+
+@router.get("/ingestion/status", response_model=IngestionStatus, operation_id="getParkingIngestionStatus")
+def ingestion_status(request: Request):
+    validate_query(request, set())
+    return request.app.state.ingestion.status()
 
 
 @router.get("/facilities", response_model=SearchResponse, operation_id="searchParkingFacilities")
@@ -45,25 +53,26 @@ def search_facilities(
     service.require_catalog()
     now = service.clock()
     results = []
-    for facility in service.facilities:
-        if not (min_lat <= facility.latitude <= max_lat and min_lon <= facility.longitude <= max_lon):
-            continue
-        detail = service.detail(facility, now)
-        if facility_status is not None and facility.facility_status != facility_status:
-            continue
-        if availability_status is not None and detail.availability_status != availability_status:
-            continue
-        price = detail.pricing
-        starting_rate = price.rates[0] if price.rates else None
-        overview = PricingOverview(**price.model_dump(exclude={"rates", "additional_fees", "tax_included"}),
-                                   starting_rate_amount=starting_rate.amount if starting_rate else None,
-                                   starting_rate_unit=starting_rate.unit if starting_rate else None)
-        results.append(SearchItem(**facility.model_dump(), availability_status=detail.availability_status,
-                                  occupancy=detail.occupancy, pricing=overview))
-    results.sort(key=lambda item: (getattr(item, sort_by), item.facility_id), reverse=sort_order == "desc")
-    total = len(results)
-    return SearchResponse(items=results[offset:offset + limit], as_of=now, facility_source="simulated_fixture",
-                          pagination=Pagination(limit=limit, offset=offset, total=total, has_more=offset + limit < total))
+    with service.lock:
+        for facility in service.facilities:
+            if not (min_lat <= facility.latitude <= max_lat and min_lon <= facility.longitude <= max_lon):
+                continue
+            detail = service.detail(facility, now)
+            if facility_status is not None and facility.facility_status != facility_status:
+                continue
+            if availability_status is not None and detail.availability_status != availability_status:
+                continue
+            price = detail.pricing
+            starting_rate = price.rates[0] if price.rates else None
+            overview = PricingOverview(**price.model_dump(exclude={"rates", "additional_fees", "tax_included"}),
+                                       starting_rate_amount=starting_rate.amount if starting_rate else None,
+                                       starting_rate_unit=starting_rate.unit if starting_rate else None)
+            results.append(SearchItem(**facility.model_dump(), availability_status=detail.availability_status,
+                                      occupancy=detail.occupancy, pricing=overview))
+        results.sort(key=lambda item: (getattr(item, sort_by), item.facility_id), reverse=sort_order == "desc")
+        total = len(results)
+        return SearchResponse(items=results[offset:offset + limit], as_of=now, facility_source=service.catalog_source,
+                              pagination=Pagination(limit=limit, offset=offset, total=total, has_more=offset + limit < total))
 
 
 @router.get("/facilities/{facility_id}", response_model=FacilityDetailResponse, operation_id="getParkingFacility")
@@ -72,10 +81,11 @@ def facility_detail(request: Request, facility_id: str = Path(min_length=1, max_
     validate_query(request, set())
     service = request.app.state.parking
     service.require_catalog()
-    facility = next((item for item in service.facilities if item.facility_id == facility_id), None)
-    if facility is None:
-        raise HTTPException(404, "Parking facility not found")
-    return service.detail(facility, service.clock())
+    with service.lock:
+        facility = next((item for item in service.facilities if item.facility_id == facility_id), None)
+        if facility is None:
+            raise HTTPException(404, "Parking facility not found")
+        return service.detail(facility, service.clock())
 
 
 @router.post("/occupancy/estimate", response_model=EstimateResponse, operation_id="estimateParkingOccupancy",

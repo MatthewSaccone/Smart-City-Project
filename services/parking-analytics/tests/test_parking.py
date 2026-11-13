@@ -24,7 +24,7 @@ def stationary(subject="one"):
     return [sample(subject, -50), sample(subject, -10)]
 
 
-ESTIMATE_HEADERS = {"Authorization": "Bearer test-estimator-token-long-enough"}
+ESTIMATE_HEADERS = {}  # populated with a real signed test JWT by conftest
 
 
 def test_geographic_search_with_calculated_fixture_occupancy(client):

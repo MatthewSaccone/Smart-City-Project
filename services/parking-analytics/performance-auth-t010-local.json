@@ -1,0 +1,71 @@
+{
+  "measured_at": "2026-11-13T01:35:43.590640Z",
+  "environment": {
+    "client_python": "3.11.9",
+    "client_os": "Windows-10-10.0.26200-SP0",
+    "logical_cpus": 20
+  },
+  "conditions": {
+    "source": "simulated inputs",
+    "facilities": 3,
+    "observations_per_estimate": 1000,
+    "concurrent_estimators": 25,
+    "concurrent_readers": 5,
+    "rounds": 3,
+    "warmup_rounds": 3,
+    "serial_requests_per_read_operation": 10,
+    "estimator_deadline_ms": null
+  },
+  "sequential_reads": {
+    "populated_search": {
+      "requests": 10,
+      "p50_ms": 3.392,
+      "p95_ms": 5.949,
+      "max_ms": 5.949
+    },
+    "empty_search": {
+      "requests": 10,
+      "p50_ms": 3.442,
+      "p95_ms": 3.971,
+      "max_ms": 3.971
+    },
+    "facility_detail": {
+      "requests": 10,
+      "p50_ms": 3.209,
+      "p95_ms": 3.609,
+      "max_ms": 3.609
+    }
+  },
+  "reads_during_estimation": {
+    "populated_search": {
+      "requests": 15,
+      "p50_ms": 220.126,
+      "p95_ms": 242.415,
+      "max_ms": 242.415
+    },
+    "empty_search": {
+      "requests": 15,
+      "p50_ms": 25.106,
+      "p95_ms": 88.951,
+      "max_ms": 88.951
+    },
+    "facility_detail": {
+      "requests": 15,
+      "p50_ms": 13.108,
+      "p95_ms": 25.359,
+      "max_ms": 25.359
+    }
+  },
+  "estimation": {
+    "requests": 75,
+    "p50_ms": 202.803,
+    "p95_ms": 264.143,
+    "max_ms": 283.885
+  },
+  "peak_in_flight_estimates": 25,
+  "reads_started_during_estimation": 33,
+  "errors": [],
+  "t040_local_pass": true,
+  "t044_local_pass": true,
+  "production_scalability_verified": false
+}

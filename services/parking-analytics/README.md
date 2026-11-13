@@ -4,9 +4,10 @@ Implements geographic facility search and occupancy estimates calculated from ti
 observations. The catalog and bundled observations are **simulated**, not a live parking feed.
 The service implements the adopted [T008 S4 contract](../../docs/api/contracts/S4-Parking-Analytics.md)
 and [common standards](../../docs/api/API-Standards.md), including selected-facility tariffs,
-independent freshness metadata, outage fallback, pagination and internal estimator credentials.
-The approved shared contract files, registry, S1, GUI and T009 implementation are unchanged.
-See [verification results](VERIFICATION.md) and the recorded performance JSON files.
+independent freshness metadata, outage fallback, pagination and JWT authorization.
+S4 now shares S2's tested Keycloak verifier and implements [T010 data integration](T010.md).
+See [JWT setup](AUTHENTICATION.md), the [original task results](VERIFICATION.md), and
+[current integration evidence](verification-auth-t010.json). S1, S3, GUI and T009 remain unchanged.
 
 ## Run locally (PowerShell, repository root)
 
@@ -17,14 +18,18 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r services/parking-analytics/requirements-dev.txt
 $env:PYTHONPATH = (Resolve-Path .\services).Path
 $env:REGISTRY_URL = ""
-$env:PARKING_ESTIMATOR_TOKEN = .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(32))"
-$env:PARKING_INTERNAL_CLIENTS = ConvertTo-Json -Compress -InputObject @(@{ token = $env:PARKING_ESTIMATOR_TOKEN; permissions = @('parking:estimate') })
+$env:JWT_ISSUER = 'http://localhost:8088/realms/smart-city'
+$env:JWT_AUDIENCE = 'smart-city-api'
+$env:JWT_JWKS_URL = 'http://localhost:8088/realms/smart-city/protocol/openid-connect/certs'
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir services/parking-analytics --host 127.0.0.1 --port 8084
 ```
 
 The services parent must be on `PYTHONPATH` for the existing `shared.registry_client` import.
-Open <http://127.0.0.1:8084/docs>; use **Authorize** with the generated token for estimation.
-Public search/detail and `/health` do not require this credential. `/ready` succeeds with
+Open <http://127.0.0.1:8084/docs>; use **Authorize** with a Keycloak access token.
+Search/detail/status require identity; estimation also requires `parking:estimate`.
+Use [AUTHENTICATION.md](AUTHENTICATION.md) to obtain a token, then set
+`$headers = @{ Authorization = "Bearer $env:PARKING_ACCESS_TOKEN" }` in the caller terminal.
+`/health` remains accessible. `/ready` succeeds with
 a usable catalog even when occupancy is unavailable; missing essential catalog data yields 503.
 Registration is optional locally. When enabling it, set `REGISTRY_URL`, `REGISTRY_API_KEY`
 and `REGISTRY_ADVERTISED_ENDPOINT` to addresses reachable by the intended consumer.
@@ -33,7 +38,7 @@ The existing registration, five-second heartbeat and shutdown behavior are uncha
 ## T039: geographic search
 
 ```powershell
-Invoke-RestMethod 'http://127.0.0.1:8084/v1/parking/facilities?min_lat=43.65&min_lon=-79.39&max_lat=43.66&max_lon=-79.37' | ConvertTo-Json -Depth 8
+Invoke-RestMethod 'http://127.0.0.1:8084/v1/parking/facilities?min_lat=43.65&min_lon=-79.39&max_lat=43.66&max_lon=-79.37' -Headers $headers | ConvertTo-Json -Depth 8
 ```
 
 `GET /v1/parking/facilities` requires `min_lat`, `min_lon`, `max_lat`, `max_lon` in WGS84
@@ -64,7 +69,7 @@ the known closed North facility returns `availability_status: closed`.
 ## T043: select a facility and inspect tariffs
 
 ```powershell
-Invoke-RestMethod 'http://127.0.0.1:8084/v1/parking/facilities/demo-central' | ConvertTo-Json -Depth 8
+Invoke-RestMethod 'http://127.0.0.1:8084/v1/parking/facilities/demo-central' -Headers $headers | ConvertTo-Json -Depth 8
 ```
 
 The detail response combines `facility`, `availability_status`, `occupancy`, `pricing`,
@@ -89,14 +94,15 @@ freshness boundaries. Missing or future source timestamps cannot establish fresh
 The fixture timestamps are deliberately historical; restarting/replaying does not make
 them live or replace them with the current time. `is_live` and `is_stale` have distinct meanings.
 
-Catalog and tariffs are persisted service-owned JSON fixtures. Optional
-`PARKING_CACHE_PATH` enables a service-owned SQLite cache containing only the latest bounded
-aggregate snapshot; no raw subjects or observations. The Compose overlay mounts an S4-only
-volume. A provider failure preserves known locations/rates and legitimate aggregate values;
+Catalog and tariffs default to service-owned JSON fixtures. Optional S4-owned PostgreSQL
+holds normalized stream snapshots; `PARKING_CACHE_PATH` preserves the latest catalog,
+tariffs and aggregate snapshot for restart fallback, without raw subjects or observations.
+The Compose overlay mounts an S4-only volume. A provider failure preserves known locations/rates and legitimate aggregate values;
 genuine source-backed estimates become `cached`, while simulations retain `simulated`
 provenance. Missing occupancy becomes null/unknown. Cached counts never imply available spaces.
 
-Source refresh runs in a background task, every `PARKING_REFRESH_SECONDS` (default 5);
+Source refresh runs in a background worker, every `PARKING_REFRESH_SECONDS` (default 5),
+with PostgreSQL notification hints and bounded retry when configured;
 reads do not call a provider. `PARKING_OCCUPANCY_MODE=unavailable` simulates a source timeout.
 `fixture` is the default. `file` plus `PARKING_OCCUPANCY_FILE` accepts only internal,
 explicitly simulated aggregate files; it cannot certify a live feed. Production providers
@@ -122,14 +128,14 @@ This example calculates one occupied space at Central, rather than returning the
 subjects in the bundled replay. An omitted `as_of` uses current UTC time; replaying old
 observations without it correctly produces unknown estimates.
 
-To submit the clearly simulated fixture from a client terminal, first set
-`PARKING_ESTIMATOR_TOKEN` there to the same credential configured in the server terminal
-(environment changes are local to a terminal). Alternatively use Swagger's Authorize button:
+To submit the clearly simulated fixture, obtain `PARKING_ACCESS_TOKEN` in the client
+terminal using a Keycloak service account granted `parking:estimate`.
+Alternatively use Swagger's Authorize button:
 
 ```powershell
 $demo = Get-Content services/parking-analytics/app/fixtures/parking.json -Raw | ConvertFrom-Json
 $body = @{ as_of = $demo.as_of; observations = $demo.observations } | ConvertTo-Json -Depth 6
-Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:8084/v1/parking/occupancy/estimate' -Headers @{ Authorization = "Bearer $env:PARKING_ESTIMATOR_TOKEN" } -ContentType 'application/json' -Body $body | ConvertTo-Json -Depth 8
+Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:8084/v1/parking/occupancy/estimate' -Headers @{ Authorization = "Bearer $env:PARKING_ACCESS_TOKEN" } -ContentType 'application/json' -Body $body | ConvertTo-Json -Depth 8
 ```
 
 Calculation (`stationary_unique_subjects_v1`):
@@ -161,13 +167,10 @@ freshness against actual response time, independently of historical `as_of`.
 update the public occupancy cache or persist raw observations. Invalid JSON/structure uses
 400; valid JSON with invalid fields uses 422, with sanitized errors that omit raw inputs.
 
-`PARKING_INTERNAL_CLIENTS` is a server-configured JSON array of internal credentials and
-permissions. Default `[]` fails closed: missing/invalid tokens return 401 and a known client
-without permission returns 403. A registry key never grants estimator access. Tokens must
-be distinct from the registry key and at least 24 ASCII characters; generate random values.
-This is an explicit **local internal-service credential mechanism**, not a newly invented
-platform user identity provider. The production token issuer, expiry/rotation/revocation
-and protected deployment trust boundary remain platform security integration dependencies.
+`PARKING_INTERNAL_CLIENTS` opaque credentials are replaced by the shared trusted JWT
+verifier. Missing/invalid identity returns 401; a verified caller without the estimator
+permission returns 403. Unavailable required signing keys return retryable 503.
+See [AUTHENTICATION.md](AUTHENTICATION.md) for Keycloak, claim mapping and migration.
 
 ## Tests, timing and Compose
 
@@ -197,12 +200,11 @@ the same benchmark plus existing PostgreSQL registry tests, restarts parking wit
 source unavailable and verifies persisted fallback. It removes only its own containers
 and volumes. It does not start S1 or other domain services.
 
-For an interactive Compose demonstration, stop the standalone server on 8084, keep the
-internal-client environment variables above, and set local registry/database secrets:
+For an interactive Compose demonstration, stop the standalone server on 8084, configure
+root `.env` and Keycloak as described in AUTHENTICATION.md, and retain your existing
+registry/database secret values:
 
 ```powershell
-$env:REGISTRY_API_KEY = .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(32))"
-$env:POSTGRES_PASSWORD = .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(24))"
 docker compose -p parking-aaliyan-demo -f docker-compose.yml -f services/parking-analytics/compose.parking.yml up --build -d parking-analytics
 ```
 
@@ -211,15 +213,14 @@ To demonstrate source failure while retaining its own persisted aggregate:
 ```powershell
 $env:PARKING_OCCUPANCY_MODE = 'unavailable'
 docker compose -p parking-aaliyan-demo -f docker-compose.yml -f services/parking-analytics/compose.parking.yml up -d --no-deps --force-recreate parking-analytics
-Invoke-RestMethod 'http://127.0.0.1:8084/v1/parking/facilities/demo-central' | ConvertTo-Json -Depth 8
+Invoke-RestMethod 'http://127.0.0.1:8084/v1/parking/facilities/demo-central' -Headers $headers | ConvertTo-Json -Depth 8
 ```
 
 Restore `PARKING_OCCUPANCY_MODE=fixture` and repeat the `up` command to recover.
 Keep the same registry/database secret values for that demo project's lifetime.
-The root Compose file is unchanged; the optional overlay changes only S4's environment
-and cache volume. The Docker startup command now uses `exec` so SIGTERM reaches Uvicorn
-for graceful registry deregistration. Missing `POSTGRES_PASSWORD` in the root `.env.example`
-is handled by the local environment commands above, without editing shared configuration.
+Root Compose passes the existing shared JWT settings to S4. The optional overlays add
+only S4's cache volume and dedicated ingestion database. The startup command uses `exec`
+so SIGTERM reaches Uvicorn for graceful worker shutdown and registry deregistration.
 
 ## Migration from the pre-T008 starter API
 

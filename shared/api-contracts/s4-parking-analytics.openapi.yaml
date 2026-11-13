@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Smart City — S4 Parking Analytics API
-  version: 1.0.0
+  version: 1.1.0
   description: T008 design contract for parking facility search, time-location-based occupancy estimation, selected-facility
     rates and fees, and provider-outage fallback. Follows Smart City Common API Standards. PR1 sets facility-information
     latency <= 2,000 ms, 25 concurrent prediction requests, update timestamps and degraded behavior. S4 design
@@ -31,7 +31,8 @@ paths:
       - S4 QR1
       - S4 QR2
       - S4 QR4
-      security: []
+      security:
+      - ServiceBearer: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/MinLatitude'
@@ -97,6 +98,8 @@ paths:
                     facility_source: parking_facility_catalog
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '422':
           $ref: '#/components/responses/ValidationFailed'
         '429':
@@ -124,7 +127,8 @@ paths:
       - S4 QR1
       - S4 QR2
       - S4 QR4
-      security: []
+      security:
+      - ServiceBearer: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/FacilityId'
@@ -207,6 +211,8 @@ paths:
                     facility_source: parking_facility_catalog
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '422':
@@ -305,6 +311,27 @@ paths:
           $ref: '#/components/responses/InternalError'
         '503':
           $ref: '#/components/responses/Unavailable'
+  /v1/parking/ingestion/status:
+    get:
+      tags: [Parking]
+      operationId: getParkingIngestionStatus
+      summary: Inspect independent catalog, pricing and occupancy refresh/cache health
+      security:
+      - ServiceBearer: []
+      responses:
+        '200':
+          description: Operational state without source paths, credentials or user observations.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /health:
     get:
       tags:
@@ -361,8 +388,9 @@ components:
     ServiceBearer:
       type: http
       scheme: bearer
-      description: Trusted internal service credential authorized for parking:estimate; issuer and token validation
-        rules defined in platform security specification.
+      bearerFormat: JWT
+      description: Trusted RS256 JWT checked against the same Keycloak issuer, audience and JWKS as S2/S3.
+        All parking operations require identity; occupancy estimation also requires the signed parking:estimate permission.
   parameters:
     RequestId:
       name: X-Request-ID
@@ -489,6 +517,44 @@ components:
         type: string
         minLength: 1
   schemas:
+    IngestionStatus:
+      type: object
+      additionalProperties: false
+      properties:
+        mode:
+          type: string
+        sources:
+          type: object
+          additionalProperties:
+            type: boolean
+        revisions:
+          type: object
+          additionalProperties:
+            type: string
+        last_success_at:
+          type: object
+          additionalProperties:
+            type: string
+            format: date-time
+        updates:
+          type: integer
+          minimum: 0
+        notifications_received:
+          type: integer
+          minimum: 0
+        notifications_rejected:
+          type: integer
+          minimum: 0
+        broker_connected:
+          type: boolean
+        consecutive_failures:
+          type: integer
+          minimum: 0
+        retry_seconds:
+          type: number
+        persistent_cache:
+          type: boolean
+      required: [mode, sources, revisions, last_success_at, updates, notifications_received, notifications_rejected, broker_connected, consecutive_failures, retry_seconds, persistent_cache]
     Pagination:
       type: object
       additionalProperties: false
@@ -1068,6 +1134,11 @@ components:
     Unauthorized:
       description: Credentials missing or invalid.
       headers:
+        WWW-Authenticate:
+          description: Bearer authentication challenge.
+          schema:
+            type: string
+          example: Bearer
         X-Request-ID:
           $ref: '#/components/headers/RequestId'
       content:
