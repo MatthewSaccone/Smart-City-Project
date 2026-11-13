@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import os
 from threading import Thread
 
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -19,6 +20,9 @@ AUDIENCE = "smart-city-api"
 @pytest.fixture(autouse=True)
 def isolated_configuration(monkeypatch):
     monkeypatch.setattr(main, "REGISTRY_URL", None)
+    for name in tuple(os.environ):
+        if name.startswith(("S2_CACHE_", "S2_REFRESH_", "S2_RETRY_")):
+            monkeypatch.delenv(name, raising=False)
     for name in ("JWT_ISSUER", "JWT_AUDIENCE", "JWT_JWKS_URL", "JWT_ROLE_CLAIM",
                  "JWT_LEEWAY_SECONDS", "JWT_JWKS_TIMEOUT_SECONDS", "JWT_ALLOW_INSECURE_JWKS",
                  "S2_DATABASE_URL", "S2_HISTORY_CSV", "S2_HISTORY_METADATA", "S2_MODEL_VERSION"):

@@ -6,7 +6,8 @@ No real forecasting result is emitted unless a validated backend is available.
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
+from .ingestion import HistoryPipeline, IngestionStatus
 from .auth import get_current_principal
 
 from .backend import TrafficBackend
@@ -22,7 +23,7 @@ from .models import (
 router = APIRouter(dependencies=[Depends(get_current_principal)])
 
 
-def get_history_store(request: Request) -> HistoryStore | PostgresHistoryStore:
+def get_history_store(request: Request) -> HistoryStore | PostgresHistoryStore | HistoryPipeline:
     store = getattr(request.app.state, "history_store", None)
     if store is None:
         raise ServiceError(
@@ -53,9 +54,23 @@ def get_backend(request: Request) -> TrafficBackend:
 )
 def list_historical_patterns(
     query: Annotated[HistoryQuery, Query()],
-    store: Annotated[HistoryStore | PostgresHistoryStore, Depends(get_history_store)],
+    store: Annotated[HistoryStore | PostgresHistoryStore | HistoryPipeline, Depends(get_history_store)],
+    response: Response,
 ):
+    if isinstance(store, HistoryPipeline):
+        value, state = store.historical_patterns_with_cache(query)
+        response.headers["X-S2-Cache"] = state
+        return value
     return store.historical_patterns(query)
+
+
+@router.get("/v1/traffic/ingestion/status", response_model=IngestionStatus,
+            operation_id="getTrafficIngestionStatus", tags=["Operations"])
+def ingestion_status(request: Request):
+    pipeline = getattr(request.app.state, "history_pipeline", None)
+    if pipeline is None:
+        return {"mode": "disabled", "source_status": "unconfigured"}
+    return pipeline.status()
 
 
 @router.post(

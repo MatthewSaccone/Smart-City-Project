@@ -17,6 +17,7 @@ ANALYTICS = [
     ("POST", "/v1/traffic/predictions"),
     ("GET", "/v1/traffic/predictions/high-congestion-periods"),
     ("GET", "/v1/traffic/predictions/areas"),
+    ("GET", "/v1/traffic/ingestion/status"),
 ]
 
 

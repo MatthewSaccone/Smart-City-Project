@@ -1,0 +1,20 @@
+{
+  "verified_at": "2026-11-13T00:36:44.144899+00:00",
+  "data": "synthetic historical fixture; no prediction model approved",
+  "identity_provider": "isolated Keycloak 26.4.7",
+  "production_verified": false,
+  "missing_token_status": 401,
+  "keycloak_token_status": 200,
+  "registration_verified": true,
+  "authenticated_history_http": {
+    "requests": 75,
+    "client_workers": 25,
+    "errors": 0,
+    "p95_ms": 160.27,
+    "max_ms": 174.852,
+    "prediction_performance_verified": false
+  },
+  "unexpired_jwks_cache_survives_outage": true,
+  "uncached_jwks_outage_status": 503,
+  "health_and_data_readiness_remain_available": true
+}

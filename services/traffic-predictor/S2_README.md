@@ -7,6 +7,10 @@ verification. Follow [AUTHENTICATION.md](AUTHENTICATION.md) for server configura
 service-account tokens, Swagger authorization and integration tests. Existing data/model
 approval requirements below still apply. Operational probes remain accessible.
 
+S2 also implements [T010 data integration](T010.md): dataset-update notifications,
+background reconciliation, bounded aggregate caching and truthful stale fallback.
+The existing historical calculations and prediction approval gates are preserved.
+
 Commands below use **Windows PowerShell**, starting from the **repository root**. Requires Python 3.13, Docker Desktop, and the two source files `svc_summary_data.csv` and `svc_raw_data_speed_2025_2029.csv` (download separately; **do not commit the raw data**).
 
 ## 1. Python and PostgreSQL

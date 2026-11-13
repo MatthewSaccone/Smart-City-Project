@@ -3,7 +3,7 @@
 | Property | Value |
 |---|---|
 | Document ID | `T008-S2-API` |
-| Version | `1.1` (JWT access migration; review before deployment) |
+| Version | `1.2` (JWT access migration and S2 T010 integration) |
 | Status | Adopted API design; prediction algorithm, historical-data source, and validation dataset are integration dependencies |
 | Logical service ID | `traffic-predictor` (S2) |
 | API version | `/v1` |
@@ -53,6 +53,7 @@ This contract defines S2's client-facing HTTP interface, data/validation semanti
 | `listAreaPredictions` | `GET /v1/traffic/predictions/areas` | Forecast road-segment congestion within a radius | Verified bearer token | `200` |
 | `getHealth` | `GET /health` | Liveness probe | Monitoring access | `200` |
 | `getReadiness` | `GET /ready` | Validated model and historical-data readiness | Monitoring access | `200` / `503` |
+| `getTrafficIngestionStatus` | `GET /v1/traffic/ingestion/status` | S2 refresh, event and cache health; no credentials or raw records | Verified bearer token | `200` |
 
 ### 3.1 Historical recurring patterns — S2 FR1
 
@@ -309,3 +310,32 @@ deployment. Paths and request/response models remain `/v1`.
    existing dataset/model semantics; it does not establish identity-provider availability.
 5. S1, S3, S4, the registry key, databases, prediction logic and model acceptance gates
    are unchanged by this migration.
+
+### 8.2 Version 1.2 S2 data integration
+
+S2 now monitors its owned dataset metadata and reloads normalized CSV snapshots in
+the local file mode. Successful PostgreSQL imports publish version 1 dataset-change
+hints; subscribers invalidate historical aggregate caches. Reconciliation also runs
+at startup, after reconnect and periodically, so notification loss is recoverable.
+The [S2 T010 implementation record](../../../services/traffic-predictor/T010.md)
+maps these behaviors to the T008 ownership and dependency requirements, including
+the internal event schema, bounds and source-validation policy.
+
+`GET /v1/traffic/ingestion/status` returns typed operational metadata and aggregate
+cache counters to a verified caller. It exposes no private source paths, database
+URLs, credentials or observations. The original four analytics JSON models remain
+unchanged. Historical responses add `X-S2-Cache: HIT | MISS | BYPASS | STALE`.
+The header indicates cache handling; it is independent of source freshness.
+
+Only identical queries with explicit start/end instants can reuse cached history.
+The response retains its original `dataset_updated_at` and `dataset_refresh_due_at`;
+`as_of` reflects the current response processing time. Expired refresh deadlines and
+outage fallback set `is_stale: true`. Results always remain historical and non-live.
+Missing/evicted query coverage returns 503 during an outage; a different location or
+time window is never substituted. Unknown source dates are not manufactured.
+
+Cache TTL, retention and reconciliation intervals are configurable operational
+defaults, not new provider refresh guarantees. A retained historical aggregate does
+not qualify an unavailable, expired or unapproved forecast model. No forecast-result
+cache or automatic model approval is added. Taha's existing model/evaluation gates
+continue to control all prediction operations.

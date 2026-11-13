@@ -5,6 +5,9 @@ signing-key endpoint as S3. All four `/v1/traffic/...` analytics operations requ
 `Authorization: Bearer <access_token>`. `/health` and `/ready` remain accessible
 operational probes. Swagger provides an **Authorize** button.
 
+The subsequent [T010 integration](T010.md) adds a protected ingestion-status endpoint
+and records the current combined authentication/data-pipeline verification results.
+
 S2 performs read-only analytics, so any verified identity for its configured
 audience can call these operations. No new moderator or ownership restriction is
 introduced. Existing dataset availability, model approval and experimental-preview

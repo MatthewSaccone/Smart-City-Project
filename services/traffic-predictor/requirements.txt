@@ -6,5 +6,5 @@ pydantic>=2.8,<3.0
 tzdata>=2025.2
 
 # SQL-backed historical observations
-psycopg[binary]>=3.1,<4
+psycopg[binary]>=3.2.4,<4
 PyJWT[crypto]>=2.10,<3.0
