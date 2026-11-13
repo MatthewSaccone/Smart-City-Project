@@ -1,0 +1,20 @@
+# Optional S2-only additions: combine with root Compose and docker-compose.s2-db.yml.
+services:
+  traffic-predictor:
+    environment:
+      S2_DATABASE_URL: postgresql://traffic_predictor:${S2_DB_PASSWORD:?Set S2_DB_PASSWORD}@s2-postgres:5432/traffic_predictor
+      S2_MODEL_VERSION: ${S2_MODEL_VERSION:-}
+      S2_EXPERIMENTAL_PREVIEW: ${S2_EXPERIMENTAL_PREVIEW:-0}
+      S2_REFRESH_SECONDS: ${S2_REFRESH_SECONDS:-5}
+      S2_RETRY_MAX_SECONDS: ${S2_RETRY_MAX_SECONDS:-60}
+      S2_CACHE_TTL_SECONDS: ${S2_CACHE_TTL_SECONDS:-30}
+      S2_CACHE_RETENTION_SECONDS: ${S2_CACHE_RETENTION_SECONDS:-86400}
+      S2_CACHE_MAX_ENTRIES: ${S2_CACHE_MAX_ENTRIES:-128}
+      S2_CACHE_PATH: /app/data/history-cache.sqlite
+    volumes:
+      - s2-history-cache:/app/data
+    depends_on:
+      s2-postgres:
+        condition: service_healthy
+volumes:
+  s2-history-cache:

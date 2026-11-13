@@ -30,14 +30,14 @@ def request_id_from_header(value: str | None) -> str:
 
 
 def error_response(request: Request, status_code: int, code: str, message: str,
-                   details=None, retryable=False, source="service") -> JSONResponse:
+                   details=None, retryable=False, source="service", headers=None) -> JSONResponse:
     request_id = getattr(request.state, "request_id", f"req-{uuid4().hex}")
     body = ErrorEnvelope(error=ErrorCore(
         code=code, message=message, request_id=request_id,
         details=details or [], retryable=retryable, source=source,
     ))
     return JSONResponse(status_code=status_code, content=body.model_dump(mode="json"),
-                        headers={"X-Request-ID": request_id})
+                        headers={**(headers or {}), "X-Request-ID": request_id})
 
 
 async def service_error_handler(request: Request, exc: ServiceError):
@@ -62,11 +62,11 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
 
 
 async def http_error_handler(request: Request, exc: HTTPException):
-    codes = {400:"BAD_REQUEST", 401:"UNAUTHORIZED", 403:"FORBIDDEN", 404:"NOT_FOUND",
+    codes = {400:"BAD_REQUEST", 401:"AUTHENTICATION_REQUIRED", 403:"FORBIDDEN", 404:"NOT_FOUND",
              409:"CONFLICT", 422:"VALIDATION_FAILED", 429:"RATE_LIMITED", 500:"INTERNAL_ERROR",
              502:"UPSTREAM_FAILURE", 503:"SERVICE_UNAVAILABLE", 504:"UPSTREAM_TIMEOUT"}
     return error_response(request, exc.status_code, codes.get(exc.status_code, "HTTP_ERROR"),
-                          str(exc.detail), retryable=exc.status_code in {429,502,503,504})
+                          str(exc.detail), retryable=exc.status_code in {429,502,503,504}, headers=exc.headers)
 
 
 async def unexpected_error_handler(request: Request, exc: Exception):

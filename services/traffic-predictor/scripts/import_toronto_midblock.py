@@ -13,6 +13,10 @@ from pathlib import Path
 import sys
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+# Allow both the documented direct script command and ordinary test imports.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from app.data_events import publish_dataset_updated
+
 SPEED_BINS = (
     ("vol_1_19kph", 1, 19),
     ("vol_20_25kph", 20, 25),
@@ -212,6 +216,9 @@ def record_import_metadata(conn, source_tz, refresh_days):
                 imported_observation_count = EXCLUDED.imported_observation_count
         """, ("toronto_midblock_2025_2029", imported_at,
               imported_at + timedelta(days=refresh_days), latest, source_tz.key, count))
+        publish_dataset_updated(cursor, dataset_id="toronto_midblock_2025_2029", updated_at=imported_at,
+                                refresh_due_at=imported_at + timedelta(days=refresh_days),
+                                latest_observation_at=latest)
     conn.commit()
 
 def run(args):
