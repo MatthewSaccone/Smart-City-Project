@@ -135,7 +135,7 @@ export default async function ServicePage({
         <h1 className="mt-5 text-3xl font-bold">{service.title}</h1>
         <p className="mt-2 text-slate-600">{service.description}</p>
 
-        {serviceId === "parking-analytics" ? (
+      {["parking-analytics", "live-traffic", "construction-incidents"].includes(serviceId) ? (
           <ServiceRequestForm serviceId={serviceId} action={service.action}>
             {fields}
           </ServiceRequestForm>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ServiceRequestForm from "../ServiceRequestForm";
 
 export default function TrafficPredictorPage() {
   const inputStyle = "rounded-md border border-slate-300 p-2";
@@ -15,32 +16,45 @@ export default function TrafficPredictorPage() {
           Enter a location and choose a future time.
         </p>
 
-        <form className="mt-6 grid gap-4 rounded-xl bg-white p-6">
-          <label className="grid gap-1">
-            Latitude
-            <input name="latitude" type="number" step="any" min={-90}
-              max={90} defaultValue={43.0096} required className={inputStyle} />
-          </label>
+        <ServiceRequestForm serviceId="traffic-predictor" action="Get prediction">
+  <label className="grid gap-1">
+    Latitude
+    <input
+      name="latitude"
+      type="number"
+      step="any"
+      min={-90}
+      max={90}
+      defaultValue={43.6532}
+      required
+      className="rounded-md border border-slate-300 p-2"
+    />
+  </label>
 
-          <label className="grid gap-1">
-            Longitude
-            <input name="longitude" type="number" step="any" min={-180}
-              max={180} defaultValue={-81.2737} required className={inputStyle} />
-          </label>
+  <label className="grid gap-1">
+    Longitude
+    <input
+      name="longitude"
+      type="number"
+      step="any"
+      min={-180}
+      max={180}
+      defaultValue={-79.3832}
+      required
+      className="rounded-md border border-slate-300 p-2"
+    />
+  </label>
 
-          <label className="grid gap-1">
-            Forecast date and time
-            <input name="forecastTime" type="datetime-local"
-              required className={inputStyle} />
-          </label>
-
-          <button type="button" disabled className="rounded-md bg-slate-200 p-2">
-            Get prediction
-          </button>
-          <p className="text-sm text-slate-600">
-            Predictions will be enabled when the API is connected.
-          </p>
-        </form>
+  <label className="grid gap-1">
+    Forecast date and time (your local time)
+    <input
+      name="forecastTime"
+      type="datetime-local"
+      required
+      className="rounded-md border border-slate-300 p-2"
+    />
+  </label>
+</ServiceRequestForm>
       </section>
     </main>
   );
