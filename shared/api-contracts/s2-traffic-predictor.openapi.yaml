@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: Smart City — S2 Traffic Predictor API
-  version: 1.0.0
+  version: 1.2.0
   description: Design API contract for recurring historical congestion and future point, area, and high-period
     predictions. Follows common Smart City API standards. It does not assert implementation status. Timestamp
-    output uses UTC Z.
+    output uses UTC Z. All analytics require a trusted RS256 bearer access token; probes remain public.
 servers:
 - url: http://localhost:8082
   description: Illustrative service address; replaced by deployment service discovery.
@@ -21,8 +21,10 @@ paths:
       summary: Return recurring congestion patterns for local weekday/hour buckets
       description: Read-only history query, grouped by requested IANA timezone. Uses sorted paginated result
         buckets. Accept start_at and end_at together, or omit both for the last 90 days. Max historical range
-        365 days; timestamps not in the future.
-      security: []
+        365 days; timestamps not in the future. Identical explicit-window queries may use a bounded cache.
+        Source dates are preserved and outage fallback is marked is_stale=true. Relative-window queries bypass the result cache.
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/Latitude'
@@ -102,6 +104,11 @@ paths:
           headers:
             X-Request-ID:
               $ref: '#/components/headers/RequestId'
+            X-S2-Cache:
+              description: Aggregate-cache handling, independent of source freshness.
+              schema:
+                type: string
+                enum: [HIT, MISS, BYPASS, STALE]
           content:
             application/json:
               schema:
@@ -132,6 +139,8 @@ paths:
                     data_status: historical
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '422':
@@ -154,7 +163,8 @@ paths:
       summary: Predict congestion for one location at a future time
       description: Read-only computation that creates no resource; repeat requests have no duplicate-write
         effect. Requires a validated, unexpired historical model.
-      security: []
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       requestBody:
@@ -201,6 +211,8 @@ paths:
                     data_status: predicted
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '422':
@@ -224,7 +236,8 @@ paths:
       description: Classifies 30-minute UTC-aligned forecast slots, merges adjacent high slots, clips to the
         requested window, then paginates. All intervals must be future, <= 48 hours long, and within the next
         seven days.
-      security: []
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/Latitude'
@@ -301,6 +314,8 @@ paths:
                     data_status: predicted
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '422':
@@ -323,7 +338,8 @@ paths:
       summary: Predict congestion for road segments within a geographic radius
       description: Filters road-segment representative points within the radius, sorts with segment_id tie-breaker,
         then paginates. Congestion level sorting is low, moderate, high, unknown.
-      security: []
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/Latitude'
@@ -391,6 +407,8 @@ paths:
                     data_status: predicted
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '422':
@@ -405,6 +423,31 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+  /v1/traffic/ingestion/status:
+    get:
+      tags:
+      - Operations
+      operationId: getTrafficIngestionStatus
+      summary: Inspect S2 dataset refresh, pub/sub and aggregate-cache health
+      description: Authenticated operational metadata only. Contains no database URLs, credentials, source file paths or raw observations.
+      security:
+      - BearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/RequestId'
+      responses:
+        '200':
+          description: Source availability, refresh timestamps and cache counters; disabled when no dataset source is configured.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /health:
     get:
       tags:
@@ -454,6 +497,12 @@ paths:
       parameters:
       - $ref: '#/components/parameters/RequestId'
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Trusted RS256 access token, verified for issuer, audience, signature and expiry using the same identity provider as S3.
   parameters:
     RequestId:
       name: X-Request-ID
@@ -532,6 +581,76 @@ components:
       schema:
         type: string
   schemas:
+    DatasetUpdated:
+      type: object
+      additionalProperties: false
+      description: S2 dataset metadata, also the version 1 internal dataset-change event. Source timestamps are preserved.
+      properties:
+        schema_version:
+          type: integer
+          const: 1
+          default: 1
+        dataset_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        dataset_updated_at:
+          type: string
+          format: date-time
+        dataset_refresh_due_at:
+          type: string
+          format: date-time
+        latest_observation_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+      required: [dataset_id, dataset_updated_at, dataset_refresh_due_at]
+    IngestionStatus:
+      type: object
+      additionalProperties: false
+      properties:
+        mode:
+          type: string
+          enum: [disabled, csv, postgres]
+        source_status:
+          type: string
+          enum: [unconfigured, available, unavailable]
+        broker:
+          type: string
+          enum: [disabled, file_refresh, postgres_listen_notify]
+        broker_connected:
+          type: boolean
+        last_successful_refresh_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        dataset:
+          anyOf:
+          - $ref: '#/components/schemas/DatasetUpdated'
+          - type: 'null'
+        dataset_updates:
+          type: integer
+        notifications_received:
+          type: integer
+        notifications_rejected:
+          type: integer
+        consecutive_failures:
+          type: integer
+        retry_seconds:
+          type: number
+        cache_entries:
+          type: integer
+        cache_hits:
+          type: integer
+        cache_misses:
+          type: integer
+        cache_fallbacks:
+          type: integer
+        cache_persistent:
+          type: boolean
+      required: [mode, source_status]
     Coordinate:
       type: object
       additionalProperties: false
@@ -910,6 +1029,28 @@ components:
       - service
       - status
   responses:
+    Unauthorized:
+      description: A valid trusted bearer access token is required.
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestId'
+        WWW-Authenticate:
+          schema:
+            type: string
+          description: Bearer authentication challenge.
+          example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          example:
+            error:
+              code: AUTHENTICATION_REQUIRED
+              message: A valid bearer access token is required.
+              request_id: req-example-001
+              details: []
+              retryable: false
+              source: service
     BadRequest:
       description: Malformed or structurally invalid request.
       headers:
@@ -1013,7 +1154,7 @@ components:
               retryable: true
               source: upstream
     Unavailable:
-      description: A validated prediction model or required dataset is unavailable.
+      description: A validated prediction model, required dataset or trusted token verification is unavailable.
       headers:
         X-Request-ID:
           $ref: '#/components/headers/RequestId'

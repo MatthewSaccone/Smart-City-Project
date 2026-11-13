@@ -1,5 +1,6 @@
 import logging
 import os
+import asyncio
 
 from contextlib import asynccontextmanager
 
@@ -7,9 +8,10 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.exceptions import RequestValidationError
 
 from shared.registry_client import RegistryClient
+from .auth import JWTSettings, TokenVerifier
+from .ingestion import HistoryPipeline
 
 from .routes import router
-from .history import HistoryStore
 from .postgres_history import PostgresHistoryStore
 from .baseline import PostgresBaselinePredictor
 from .errors import (ServiceError, request_id_from_header, service_error_handler,
@@ -32,6 +34,7 @@ REGISTRY_API_KEY = os.getenv("REGISTRY_API_KEY")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.token_verifier = TokenVerifier(JWTSettings.from_env())
     # Load source-normalized historical data independently of the prediction model.
     # S2 FR1 can work before a validated forecasting model is available.
     history_csv = os.getenv("S2_HISTORY_CSV")
@@ -43,10 +46,15 @@ async def lifespan(app: FastAPI):
         raise RuntimeError("Configure either S2_DATABASE_URL or fixture CSV, not both")
     if database_url:
         app.state.history_store = PostgresHistoryStore(database_url)
-    elif history_csv:
-        app.state.history_store = HistoryStore.from_files(history_csv, history_metadata)
     else:
         app.state.history_store = None
+    pipeline = None
+    if database_url or history_csv:
+        pipeline = HistoryPipeline(app.state.history_store, database_url=database_url,
+                                   csv_paths=(history_csv, history_metadata) if history_csv else None)
+        await asyncio.to_thread(pipeline.refresh_once)
+        app.state.history_store = pipeline
+    app.state.history_pipeline = pipeline
     # Predictions are gated by the approved, unexpired model registry entry.
     model_version = os.getenv("S2_MODEL_VERSION", "").strip()
     app.state.traffic_backend = (
@@ -57,6 +65,8 @@ async def lifespan(app: FastAPI):
 
     if REGISTRY_URL:
         if not REGISTRY_API_KEY:
+            if pipeline:
+                await asyncio.to_thread(pipeline.close)
             raise RuntimeError(
                 "REGISTRY_API_KEY must be configured "
                 "when REGISTRY_URL is provided"
@@ -76,21 +86,30 @@ async def lifespan(app: FastAPI):
             },
         )
 
-        await registry_client.start()
+        try:
+            await registry_client.start()
+        except BaseException:
+            if pipeline:
+                await asyncio.to_thread(pipeline.close)
+            raise
 
     app.state.registry_client = registry_client
+    if pipeline:
+        pipeline.start()
 
     try:
         yield
 
     finally:
+        if pipeline:
+            await asyncio.to_thread(pipeline.close)
         if registry_client is not None:
             await registry_client.stop()
 
 
 app = FastAPI(
     title="Traffic Predictor",
-    version="0.1.0",
+    version="1.2.0",
     lifespan=lifespan,
 )
 

@@ -160,7 +160,7 @@ def test_sorting_pagination_missing_values():
     assert [x.local_hour for x in out.items] == [12, 11]
 
 
-def test_http_endpoint_uses_database_adapter(monkeypatch):
+def test_http_endpoint_uses_database_adapter(monkeypatch, auth_headers):
     from app.main import app
     from app import main as main_module
 
@@ -170,8 +170,10 @@ def test_http_endpoint_uses_database_adapter(monkeypatch):
     monkeypatch.delenv("S2_HISTORY_METADATA", raising=False)
     monkeypatch.delenv("REGISTRY_URL", raising=False)
     monkeypatch.setattr(main_module, "PostgresHistoryStore", lambda dsn: make_store(conn))
+    monkeypatch.setattr(main_module.HistoryPipeline, "refresh_once", lambda pipeline: pipeline.refresh_postgres(conn))
+    monkeypatch.setattr(main_module.HistoryPipeline, "start", lambda pipeline: None)
 
-    with TestClient(app) as client:
+    with TestClient(app, headers=auth_headers) as client:
         response = client.get("/v1/traffic/history/patterns", params={
             "latitude": 43.736355, "longitude": -79.43891,
             "timezone": "America/Toronto", "day_of_week": "wednesday", "local_hour": 11,
