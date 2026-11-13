@@ -1,3 +1,4 @@
+import ServiceRequestForm from "../../ServiceRequestForm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -108,6 +109,22 @@ export default async function ServicePage({
 
   if (!service) notFound();
 
+  const fields = service.fields.map((field) => (
+    <label key={field.name} className="grid gap-1">
+      {field.label}
+      <input
+        name={field.name}
+        type={field.type ?? "text"}
+        defaultValue={field.value}
+        min={field.min}
+        max={field.max}
+        step={field.type === "number" ? "any" : undefined}
+        required
+        className="rounded-md border border-slate-300 p-2"
+      />
+    </label>
+  ));
+
   return (
     <main className="min-h-screen bg-slate-100 p-6 text-slate-900">
       <section className="mx-auto max-w-xl">
@@ -118,34 +135,25 @@ export default async function ServicePage({
         <h1 className="mt-5 text-3xl font-bold">{service.title}</h1>
         <p className="mt-2 text-slate-600">{service.description}</p>
 
-        <form className="mt-6 grid gap-4 rounded-xl bg-white p-6">
-          {service.fields.map((field) => (
-            <label key={field.name} className="grid gap-1">
-              {field.label}
-              <input
-                name={field.name}
-                type={field.type ?? "text"}
-                defaultValue={field.value}
-                min={field.min}
-                max={field.max}
-                step={field.type === "number" ? "any" : undefined}
-                className="rounded-md border border-slate-300 p-2"
-              />
-            </label>
-          ))}
-
-          <button
-            type="button"
-            disabled
-            className="rounded-md bg-slate-200 px-4 py-2 text-slate-600"
-          >
-            {service.action}
-          </button>
-          <p className="text-sm text-slate-600">
-            You can edit these fields. Submitting will be enabled when
-            this page is connected to the service API.
-          </p>
-        </form>
+        {serviceId === "parking-analytics" ? (
+          <ServiceRequestForm serviceId={serviceId} action={service.action}>
+            {fields}
+          </ServiceRequestForm>
+        ) : (
+          <div className="mt-6 grid gap-4 rounded-xl bg-white p-6">
+            {fields}
+            <button
+              type="button"
+              disabled
+              className="rounded-md bg-slate-200 px-4 py-2 text-slate-600"
+            >
+              {service.action}
+            </button>
+            <p className="text-sm text-slate-600">
+              This service is not connected yet.
+            </p>
+          </div>
+        )}
       </section>
     </main>
   );
