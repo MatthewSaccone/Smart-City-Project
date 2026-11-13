@@ -71,14 +71,9 @@ async function ServiceDirectory() {
                   : count === 0
                     ? "Unavailable"
                     : `Available · ${count} healthy ${count === 1 ? "instance" : "instances"}`;
-{card.id === "traffic-predictor" && (
-  <a
-    href="/traffic-predictor"
-    className="mt-4 block w-fit rounded-md bg-teal-700 px-4 py-2 text-white"
-  >
-    Open service
-  </a>
-)}
+
+
+
             return (
               <article
   key={card.id}
@@ -96,16 +91,18 @@ async function ServiceDirectory() {
     {status}
   </p>
 
-  {card.id === "traffic-predictor" && (
-    <div className="mt-4">
-      <a
-        href="/traffic-predictor"
-        className="inline-block rounded-md bg-teal-700 px-4 py-2 font-semibold text-white"
-      >
-        Open service
-      </a>
-    </div>
-  )}
+  <div className="mt-4">
+  <a
+    href={
+      card.id === "traffic-predictor"
+        ? "/traffic-predictor"
+        : `/services/${card.id}`
+    }
+    className="inline-block rounded-md bg-teal-700 px-4 py-2 font-semibold text-white"
+  >
+    Open service
+  </a>
+</div>
 </article>
             );
           })}
