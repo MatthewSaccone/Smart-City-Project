@@ -101,12 +101,12 @@ def test_speed_score_thresholds_are_explicit():
     assert congestion_level(None) == "unknown"
 
 
-def test_live_http_route_independent_of_untrained_prediction_model(monkeypatch):
+def test_live_http_route_independent_of_untrained_prediction_model(monkeypatch, auth_headers):
     monkeypatch.setenv("S2_HISTORY_CSV", str(FIXTURES / "EXAMPLE_ONLY_historical_traffic.csv"))
     monkeypatch.setenv("S2_HISTORY_METADATA", str(FIXTURES / "EXAMPLE_ONLY_history_metadata.json"))
     monkeypatch.delenv("REGISTRY_URL", raising=False)
     monkeypatch.delenv("S2_DATABASE_URL", raising=False)
-    with TestClient(app) as client:
+    with TestClient(app, headers=auth_headers) as client:
         response = client.get("/v1/traffic/history/patterns", params={
             "latitude": 43.0096, "longitude": -81.2737,
             "timezone": "America/Toronto", "day_of_week": "monday", "local_hour": 8,

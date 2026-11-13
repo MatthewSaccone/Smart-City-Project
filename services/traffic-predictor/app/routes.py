@@ -7,6 +7,7 @@ No real forecasting result is emitted unless a validated backend is available.
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request
+from .auth import get_current_principal
 
 from .backend import TrafficBackend
 from .history import HistoryStore
@@ -18,7 +19,7 @@ from .models import (
     PointPredictionRequest, PointPredictionResponse,
 )
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_principal)])
 
 
 def get_history_store(request: Request) -> HistoryStore | PostgresHistoryStore:

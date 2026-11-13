@@ -3,7 +3,7 @@
 | Property | Value |
 |---|---|
 | Document ID | `T008-S2-API` |
-| Version | `1.0` (initial contract) |
+| Version | `1.1` (JWT access migration; review before deployment) |
 | Status | Adopted API design; prediction algorithm, historical-data source, and validation dataset are integration dependencies |
 | Logical service ID | `traffic-predictor` (S2) |
 | API version | `/v1` |
@@ -40,17 +40,17 @@ This contract defines S2's client-facing HTTP interface, data/validation semanti
 - The common categorical values are `low`, `moderate`, `high`, and `unknown`. `unknown` is used only when the response explicitly communicates insufficient evidence; it must not be presented as a valid confident forecast. Numeric scores are **normalized, unitless values in `[0,1]`**, not probabilities of being correct.
 - All prediction responses report the **target `forecast_time`**, **`generated_at`** (when the prediction was made), **`model_version`**, and **`training_data_end_at`** (latest historical observation included in the model). `model_valid_until` states the model's approved validity deadline. A model past that deadline is **not eligible for new predictions**; return `503` if no approved model is available. `is_stale` is evaluated against this deadline; successful new predictions are never silently generated from an expired model.
 - Predictions have `is_live: false`, `data_status: "predicted"`, `source: "historical_traffic_model"`. Historical-pattern results use `data_status: "historical"`, `source: "historical_traffic_dataset"`. For historical patterns, `is_stale` indicates whether the dataset has passed its declared `dataset_refresh_due_at`; an older dataset can still be served, visibly marked as stale. A dataset refresh cadence will be set with the selected provider.
-- S2 endpoints are **public, read-only analytics**. A POST computes a prediction but creates no persistent client resource. All errors use the adopted envelope and `X-Request-ID`; no endpoint accepts a user identity field as authentication.
+- All four S2 analytics endpoints require a **verified bearer access token** from the same trusted identity provider used by S3. A POST computes a prediction but creates no persistent client resource. All errors use the adopted envelope and `X-Request-ID`; no endpoint accepts a user identity field as authentication.
 - A geographic search outside documented road-network/model coverage returns `404` with `NOT_FOUND` (or the narrower `COVERAGE_NOT_FOUND`). If geography is supported but no trustworthy prediction can be computed due to missing history/model state, return `503` with `SERVICE_UNAVAILABLE` or `INSUFFICIENT_HISTORICAL_DATA`. A successfully evaluated query with zero matching segments/periods returns `200` with `items: []`.
 
 ## 3. Endpoint inventory
 
 | Operation ID | Method and path | Purpose | Auth | Success |
 |---|---|---|---|---|
-| `listHistoricalPatterns` | `GET /v1/traffic/history/patterns` | Identify recurring congestion by local day/hour | Public read | `200` |
-| `predictPointCongestion` | `POST /v1/traffic/predictions` | Forecast congestion at one location and instant | Public read/compute | `200` |
-| `listHighCongestionPeriods` | `GET /v1/traffic/predictions/high-congestion-periods` | Find future high-congestion periods within an area | Public read | `200` |
-| `listAreaPredictions` | `GET /v1/traffic/predictions/areas` | Forecast road-segment congestion within a radius | Public read | `200` |
+| `listHistoricalPatterns` | `GET /v1/traffic/history/patterns` | Identify recurring congestion by local day/hour | Verified bearer token | `200` |
+| `predictPointCongestion` | `POST /v1/traffic/predictions` | Forecast congestion at one location and instant | Verified bearer token | `200` |
+| `listHighCongestionPeriods` | `GET /v1/traffic/predictions/high-congestion-periods` | Find future high-congestion periods within an area | Verified bearer token | `200` |
+| `listAreaPredictions` | `GET /v1/traffic/predictions/areas` | Forecast road-segment congestion within a radius | Verified bearer token | `200` |
 | `getHealth` | `GET /health` | Liveness probe | Monitoring access | `200` |
 | `getReadiness` | `GET /ready` | Validated model and historical-data readiness | Monitoring access | `200` / `503` |
 
@@ -232,6 +232,8 @@ GET /v1/traffic/predictions/areas?latitude=43.0096&longitude=-81.2737&radius_m=1
 
 ## 4. Validation, errors, and retries
 
+- `401 AUTHENTICATION_REQUIRED`: missing, malformed, expired, wrongly signed, wrong-issuer or wrong-audience access token. Includes `WWW-Authenticate: Bearer`. Authentication runs before analytics dependencies; a registry key or caller-supplied identity header is not sufficient.
+- `503 SERVICE_UNAVAILABLE`: trusted token verification is unconfigured or signing keys cannot be retrieved when needed. No anonymous fallback is provided. An unexpired cached JWKS may still validate tokens; the five-minute JWKS cache is not extended during an outage.
 - Required fields, strict types, finite numeric coordinates, permitted radius and timestamp ranges, and all cross-field relationships are validated before expensive predictions.
 - `422 VALIDATION_FAILED`: unsupported timezone, malformed field value, forecast in the past, forecast beyond 7 days, history interval in the future, history range longer than 365 days, high-period request window longer than 48 hours, or any contradictory bounds. Malformed request syntax receives `400 BAD_REQUEST`.
 - `404 NOT_FOUND` / `COVERAGE_NOT_FOUND`: requested location/area is outside supported geographic/model coverage.
@@ -284,3 +286,26 @@ GET /v1/traffic/predictions/areas?latitude=43.0096&longitude=-81.2737&radius_m=1
 ## 8. Contract change policy
 
 The approved OpenAPI document and this Markdown contract define the target implementation. They must agree on paths, types, defaults, examples, status codes, and quality semantics. Incompatible changes must follow `API-Standards.md` versioning/change-control rules before deployment.
+
+### 8.1 Version 1.1 access migration
+
+This feature branch implements the requested S2 authentication integration with the
+existing S3/Keycloak identity provider. Requiring tokens changes the previous anonymous
+access policy, so this migration must be reviewed with the affected clients before
+deployment. Paths and request/response models remain `/v1`.
+
+1. Configure the same `JWT_ISSUER`, `JWT_AUDIENCE`, and trusted `JWT_JWKS_URL` as S3.
+   Only RS256 signatures are accepted; `exp`, `iat`, `iss`, `aud`, and a nonempty `sub`
+   are required. The configured clock tolerance is 0–60 seconds (default 30).
+2. Frontend/application clients must obtain identity-provider access tokens; internal
+   callers should use a confidential service-account client with client credentials.
+   Configure the Keycloak audience mapper so issued tokens include `smart-city-api`.
+   Any valid identity for the configured audience may access these read-only analytics;
+   no new moderator role or ownership rule is introduced.
+3. Consumers and benchmark clients must send `Authorization: Bearer <access_token>`
+   on every analytics request and refresh expired tokens. Update clients before
+   rolling out the protected service. There is no local authentication bypass.
+4. `/health` and `/ready` remain accessible operational probes. Readiness retains its
+   existing dataset/model semantics; it does not establish identity-provider availability.
+5. S1, S3, S4, the registry key, databases, prediction logic and model acceptance gates
+   are unchanged by this migration.

@@ -7,3 +7,4 @@ tzdata>=2025.2
 
 # SQL-backed historical observations
 psycopg[binary]>=3.1,<4
+PyJWT[crypto]>=2.10,<3.0

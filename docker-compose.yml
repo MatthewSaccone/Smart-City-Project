@@ -209,10 +209,17 @@ services:
       dockerfile: traffic-predictor/Dockerfile
     restart: unless-stopped
     environment:
-      APP_ENV: development
+      APP_ENV: ${APP_ENV:-production}
       REGISTRY_URL: http://service-registry:8080
       REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
       REGISTRY_ADVERTISED_ENDPOINT: http://traffic-predictor:8080
+      JWT_ALLOW_INSECURE_JWKS: ${JWT_ALLOW_INSECURE_JWKS:-false}
+      JWT_ISSUER: ${JWT_ISSUER:-}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-}
+      JWT_JWKS_URL: ${JWT_JWKS_URL:-}
+      JWT_ROLE_CLAIM: ${JWT_ROLE_CLAIM:-roles}
+      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-30}
+      JWT_JWKS_TIMEOUT_SECONDS: ${JWT_JWKS_TIMEOUT_SECONDS:-5}
     depends_on:
       service-registry:
         condition: service_healthy

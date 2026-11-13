@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.exceptions import RequestValidationError
 
 from shared.registry_client import RegistryClient
+from .auth import JWTSettings, TokenVerifier
 
 from .routes import router
 from .history import HistoryStore
@@ -32,6 +33,7 @@ REGISTRY_API_KEY = os.getenv("REGISTRY_API_KEY")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.token_verifier = TokenVerifier(JWTSettings.from_env())
     # Load source-normalized historical data independently of the prediction model.
     # S2 FR1 can work before a validated forecasting model is available.
     history_csv = os.getenv("S2_HISTORY_CSV")
@@ -90,7 +92,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Traffic Predictor",
-    version="0.1.0",
+    version="1.1.0",
     lifespan=lifespan,
 )
 

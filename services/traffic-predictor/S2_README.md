@@ -2,6 +2,11 @@
 
 S2 is a FastAPI service backed by its **own PostgreSQL database**. It imports the City of Toronto *Midblock Traffic Speed* dataset and offers historical traffic analysis and experimental statistical predictions.
 
+All four analytics endpoints now require a Keycloak JWT, matching S3's issuer/audience
+verification. Follow [AUTHENTICATION.md](AUTHENTICATION.md) for server configuration,
+service-account tokens, Swagger authorization and integration tests. Existing data/model
+approval requirements below still apply. Operational probes remain accessible.
+
 Commands below use **Windows PowerShell**, starting from the **repository root**. Requires Python 3.13, Docker Desktop, and the two source files `svc_summary_data.csv` and `svc_raw_data_speed_2025_2029.csv` (download separately; **do not commit the raw data**).
 
 ## 1. Python and PostgreSQL
@@ -11,7 +16,7 @@ Commands below use **Windows PowerShell**, starting from the **repository root**
 py -3.13 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r services/traffic-predictor/requirements.txt
-python -m pip install pytest  # needed only to run tests
+python -m pip install -r services/traffic-predictor/requirements-dev.txt  # tests only
 
 # Set the SAME password used when this Docker volume was first created
 $env:S2_DB_PASSWORD = 'YOUR_LOCAL_DB_PASSWORD'
@@ -59,6 +64,9 @@ $env:PYTHONPATH = (Resolve-Path ..).Path
 $env:S2_MODEL_VERSION = 'toronto-p75-candidate-v1'
 $env:APP_ENV = 'development'
 $env:S2_EXPERIMENTAL_PREVIEW = '1'  # local testing ONLY
+$env:JWT_ISSUER = 'http://localhost:8088/realms/smart-city'
+$env:JWT_AUDIENCE = 'smart-city-api'
+$env:JWT_JWKS_URL = 'http://localhost:8088/realms/smart-city/protocol/openid-connect/certs'
 Remove-Item Env:S2_HISTORY_CSV -ErrorAction SilentlyContinue
 Remove-Item Env:S2_HISTORY_METADATA -ErrorAction SilentlyContinue
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8082
@@ -82,10 +90,11 @@ $env:PYTHONPATH = (Resolve-Path ..).Path
 python -m pytest tests -q
 
 # Keep the API running in the other terminal; requires the real PostgreSQL backend
+# Set S2_ACCESS_TOKEN in this terminal using the client-credentials example in AUTHENTICATION.md.
 python scripts/benchmark_s2.py --scenario history --concurrency 25 --requests 100
 python scripts/benchmark_s2.py --scenario point --concurrency 25 --requests 100
 python scripts/benchmark_s2.py --scenario high-periods --concurrency 25 --requests 100
 python scripts/benchmark_s2.py --scenario areas --concurrency 25 --requests 100
 ```
 
-All four benchmarks passed locally with 25 concurrent workers and response times below 3 seconds on the original developer's machine. **Repeat after cloud deployment.** Don't commit generated `s2-*.json` evaluation/benchmark reports, `.venv`, secrets, or the raw CSVs.
+All four benchmarks passed locally with 25 concurrent workers and response times below 3 seconds on the original developer's machine **before the JWT migration**. Repeat with authenticated requests and after cloud deployment. Don't commit generated `s2-*.json` evaluation/benchmark reports, `.venv`, secrets, or the raw CSVs.

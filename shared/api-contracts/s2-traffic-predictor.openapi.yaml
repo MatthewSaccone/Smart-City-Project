@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: Smart City — S2 Traffic Predictor API
-  version: 1.0.0
+  version: 1.1.0
   description: Design API contract for recurring historical congestion and future point, area, and high-period
     predictions. Follows common Smart City API standards. It does not assert implementation status. Timestamp
-    output uses UTC Z.
+    output uses UTC Z. All analytics require a trusted RS256 bearer access token; probes remain public.
 servers:
 - url: http://localhost:8082
   description: Illustrative service address; replaced by deployment service discovery.
@@ -22,7 +22,8 @@ paths:
       description: Read-only history query, grouped by requested IANA timezone. Uses sorted paginated result
         buckets. Accept start_at and end_at together, or omit both for the last 90 days. Max historical range
         365 days; timestamps not in the future.
-      security: []
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/Latitude'
@@ -132,6 +133,8 @@ paths:
                     data_status: historical
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '422':
@@ -154,7 +157,8 @@ paths:
       summary: Predict congestion for one location at a future time
       description: Read-only computation that creates no resource; repeat requests have no duplicate-write
         effect. Requires a validated, unexpired historical model.
-      security: []
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       requestBody:
@@ -201,6 +205,8 @@ paths:
                     data_status: predicted
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '422':
@@ -224,7 +230,8 @@ paths:
       description: Classifies 30-minute UTC-aligned forecast slots, merges adjacent high slots, clips to the
         requested window, then paginates. All intervals must be future, <= 48 hours long, and within the next
         seven days.
-      security: []
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/Latitude'
@@ -301,6 +308,8 @@ paths:
                     data_status: predicted
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '422':
@@ -323,7 +332,8 @@ paths:
       summary: Predict congestion for road segments within a geographic radius
       description: Filters road-segment representative points within the radius, sorts with segment_id tie-breaker,
         then paginates. Congestion level sorting is low, moderate, high, unknown.
-      security: []
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/Latitude'
@@ -391,6 +401,8 @@ paths:
                     data_status: predicted
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '422':
@@ -454,6 +466,12 @@ paths:
       parameters:
       - $ref: '#/components/parameters/RequestId'
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Trusted RS256 access token, verified for issuer, audience, signature and expiry using the same identity provider as S3.
   parameters:
     RequestId:
       name: X-Request-ID
@@ -910,6 +928,28 @@ components:
       - service
       - status
   responses:
+    Unauthorized:
+      description: A valid trusted bearer access token is required.
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestId'
+        WWW-Authenticate:
+          schema:
+            type: string
+          description: Bearer authentication challenge.
+          example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          example:
+            error:
+              code: AUTHENTICATION_REQUIRED
+              message: A valid bearer access token is required.
+              request_id: req-example-001
+              details: []
+              retryable: false
+              source: service
     BadRequest:
       description: Malformed or structurally invalid request.
       headers:
@@ -1013,7 +1053,7 @@ components:
               retryable: true
               source: upstream
     Unavailable:
-      description: A validated prediction model or required dataset is unavailable.
+      description: A validated prediction model, required dataset or trusted token verification is unavailable.
       headers:
         X-Request-ID:
           $ref: '#/components/headers/RequestId'

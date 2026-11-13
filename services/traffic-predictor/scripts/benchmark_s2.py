@@ -9,6 +9,7 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 import json
+import os
 from pathlib import Path
 import statistics
 import threading
@@ -70,11 +71,11 @@ def build_request(base_url, scenario, latitude, longitude, radius_m):
     return method, url, body
 
 
-def request_once(method, url, body, timeout_s):
+def request_once(method, url, body, timeout_s, token):
     start = time.perf_counter()
     status, error = None, None
     try:
-        headers = {"Accept": "application/json"}
+        headers = {"Accept": "application/json", "Authorization": f"Bearer {token}"}
         if body is not None:
             headers["Content-Type"] = "application/json"
         req = Request(url, data=body, headers=headers, method=method)
@@ -102,7 +103,7 @@ def percentile(values, quantile):
     return ordered[max(0, math.ceil(quantile * len(ordered)) - 1)]
 
 
-def benchmark(method, url, body, concurrency, count, timeout_s):
+def benchmark(method, url, body, concurrency, count, timeout_s, token):
     # Barrier forces the first wave of workers to begin their requests together.
     barrier = threading.Barrier(concurrency, timeout=15)
 
@@ -112,7 +113,7 @@ def benchmark(method, url, body, concurrency, count, timeout_s):
                 barrier.wait()
             except threading.BrokenBarrierError:
                 return {"status": None, "elapsed_ms": 0.0, "error": "Could not start synchronized first wave"}
-        return request_once(method, url, body, timeout_s)
+        return request_once(method, url, body, timeout_s, token)
 
     results = []
     start = time.perf_counter()
@@ -137,7 +138,11 @@ def main():
     parser.add_argument("--radius-m", type=float, default=1000.0)
     parser.add_argument("--threshold-ms", type=float, default=3000.0)
     parser.add_argument("--output", type=Path, help="Optional JSON report path")
+    parser.add_argument("--token-env", default="S2_ACCESS_TOKEN", help="Environment variable holding a valid access token")
     args = parser.parse_args()
+    token = os.getenv(args.token_env)
+    if not token:
+        parser.error(f"Set {args.token_env} to a trusted JWT access token (the token is never printed)")
 
     if args.concurrency < 1 or args.requests < args.concurrency:
         parser.error("--requests must be >= --concurrency, and both must be positive")
@@ -154,14 +159,14 @@ def main():
     print("Make sure you are testing the real PostgreSQL backend, not a fixture.")
 
     for _ in range(args.warmup):
-        sample = request_once(method, url, body, args.timeout)
+        sample = request_once(method, url, body, args.timeout, token)
         if sample["status"] is None or not 200 <= sample["status"] < 300:
             print(f"Warm-up was unsuccessful: HTTP {sample['status']} {sample['error'] or ''}")
             print("Fix the endpoint/model readiness before interpreting benchmark results.")
             return 2
 
     results, wall_s = benchmark(
-        method, url, body, args.concurrency, args.requests, args.timeout
+        method, url, body, args.concurrency, args.requests, args.timeout, token
     )
     successes = [r for r in results if r["status"] is not None and 200 <= r["status"] < 300]
     durations = [r["elapsed_ms"] for r in successes]
