@@ -7,7 +7,8 @@ and [common standards](../../docs/api/API-Standards.md), including selected-faci
 independent freshness metadata, outage fallback, pagination and JWT authorization.
 S4 now shares S2's tested Keycloak verifier and implements [T010 data integration](T010.md).
 See [JWT setup](AUTHENTICATION.md), the [original task results](VERIFICATION.md), and
-[current integration evidence](verification-auth-t010.json). S1, S3, GUI and T009 remain unchanged.
+[authorization/T010 integration evidence](verification-auth-t010.json) and
+[database startup/recovery evidence](verification-database.json). S1, S3, GUI and T009 remain unchanged.
 
 ## Run locally (PowerShell, repository root)
 
@@ -34,6 +35,31 @@ a usable catalog even when occupancy is unavailable; missing essential catalog d
 Registration is optional locally. When enabling it, set `REGISTRY_URL`, `REGISTRY_API_KEY`
 and `REGISTRY_ADVERTISED_ENDPOINT` to addresses reachable by the intended consumer.
 The existing registration, five-second heartbeat and shutdown behavior are unchanged.
+
+## Run with S4's PostgreSQL database
+
+From the repository root, configure the root `.env` with the team's required secrets,
+including a URL-safe `PARKING_DB_PASSWORD`. Start S4 and its own database using:
+
+```powershell
+$parkingCompose = @('-f','docker-compose.yml','-f','services/parking-analytics/compose.parking.yml','-f','services/parking-analytics/compose.parking.db.yml')
+docker compose @parkingCompose up --build -d parking-analytics
+# Optional: publish the clearly labeled simulated demonstration datasets.
+docker compose @parkingCompose exec -T parking-analytics python tools/import_dataset.py --seed-demo
+```
+
+`app/database.py` manages bounded PostgreSQL connections and creates S4's
+`parking_datasets` table automatically before ingestion reads, including on reconnect.
+`app/storage.py` uses that connection manager for validated catalog, pricing and
+aggregate occupancy snapshots. Repeated or concurrent initialization preserves
+existing records and timestamps. The database has its own credentials and volume.
+
+Schema creation does not seed data. A fresh empty database gives `/health` 200 and
+`/ready` 503 until a usable catalog is published. If the database is unavailable,
+S4 retries in the background and serves any valid retained snapshots from its
+S4-only cache; without a usable retained catalog it remains unready. Native runs
+enable the same lifecycle by setting `PARKING_DATABASE_URL` to S4's database.
+Leaving it unset preserves the existing simulated fixture/file mode.
 
 ## T039: geographic search
 

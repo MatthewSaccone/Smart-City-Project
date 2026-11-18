@@ -34,6 +34,7 @@ async def lifespan(app: FastAPI):
     configure_auth(app)
     app.state.parking = ParkingService(cache_path=os.getenv("PARKING_CACHE_PATH"))
     app.state.ingestion = ParkingIngestion(app.state.parking)
+    app.state.database = app.state.ingestion.database
     await asyncio.to_thread(app.state.ingestion.refresh_once)
 
     if REGISTRY_URL:

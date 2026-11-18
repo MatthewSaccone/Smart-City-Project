@@ -1,30 +1,11 @@
 """Optional dedicated S4 PostgreSQL snapshots and transactional update hints."""
 
 from app.datasets import CHANNEL, DatasetChanged, StoredFeed, revision, validate_feed
+from app.database import Database
 
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS parking_datasets (
-    stream TEXT PRIMARY KEY CHECK (stream IN ('catalog','pricing','occupancy')),
-    revision TEXT NOT NULL,
-    payload JSONB NOT NULL CHECK (octet_length(payload::text) <= 8388608),
-    received_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
-)
-"""
-
-
-class ParkingDataStore:
-    def __init__(self, database_url):
-        self.database_url = database_url
-
-    def connect(self):
-        import psycopg
-        return psycopg.connect(self.database_url, autocommit=True, connect_timeout=2,
-                               options="-c statement_timeout=2000")
-
-    def initialize(self):
-        with self.connect() as connection:
-            connection.execute(SCHEMA)
+class ParkingDataStore(Database):
+    """Validated stream publication and reads using S4's database lifecycle."""
 
     def publish(self, stream, payload):
         feed = validate_feed(stream, payload)

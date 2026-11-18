@@ -27,7 +27,8 @@ def verify(output=None):
     project = "scms-s4-auth-data-" + uuid.uuid4().hex[:10]
     env = os.environ.copy()
     env.update({name: secrets.token_hex(24) for name in ("REGISTRY_API_KEY", "POSTGRES_PASSWORD",
-        "INCIDENTS_POSTGRES_PASSWORD", "KEYCLOAK_DB_PASSWORD", "KEYCLOAK_ADMIN_PASSWORD", "PARKING_DB_PASSWORD")})
+        "INCIDENTS_POSTGRES_PASSWORD", "TRAFFIC_POSTGRES_PASSWORD", "KEYCLOAK_DB_PASSWORD",
+        "KEYCLOAK_ADMIN_PASSWORD", "PARKING_DB_PASSWORD")})
     env.update({"APP_ENV": "development", "JWT_ALLOW_INSECURE_JWKS": "true",
         "JWT_ISSUER": "http://s4-auth-test.invalid/realms/smart-city", "JWT_AUDIENCE": "smart-city-api",
         "JWT_JWKS_URL": "http://keycloak:8080/realms/smart-city/protocol/openid-connect/certs",
@@ -90,6 +91,15 @@ def verify(output=None):
                     raise TimeoutError(description)
 
                 wait_for(lambda: client.get(parking_url + "/health").status_code == 200, "S4 process unavailable")
+                port = compose("port", "parking-postgres", "5432", capture=True).strip().rsplit(":", 1)[1]
+                store = ParkingDataStore(f"postgresql://parking_analytics:{env['PARKING_DB_PASSWORD']}@127.0.0.1:{port}/parking_analytics")
+                # Inspect before the importer runs: only API startup can have
+                # created this table in the project's fresh database volume.
+                with store.connect() as connection:
+                    assert connection.execute("SELECT to_regclass('public.parking_datasets')").fetchone()[0]
+                    assert store.read(connection) == {}
+                assert client.get(parking_url + "/ready").status_code == 503
+                report["empty_database_initialized_by_api_without_demo_seeding"] = "passed"
                 wait_for(lambda: client.get(identity_url + "/realms/smart-city/.well-known/openid-configuration").status_code == 200,
                          "Test Keycloak realm unavailable")
                 compose("exec", "-T", "parking-analytics", "python", "tools/import_dataset.py", "--seed-demo")
@@ -128,10 +138,19 @@ def verify(output=None):
                 report["performance"] = asyncio.run(measure(parking_url, estimator))
                 assert report["performance"]["t040_local_pass"] and report["performance"]["t044_local_pass"]
 
-                port = compose("port", "parking-postgres", "5432", capture=True).strip().rsplit(":", 1)[1]
-                store = ParkingDataStore(f"postgresql://parking_analytics:{env['PARKING_DB_PASSWORD']}@127.0.0.1:{port}/parking_analytics")
                 with store.connect() as connection:
                     records = store.read(connection)
+                # Several replicas may initialize together. Existing payloads,
+                # revisions and receipt times must survive every attempt.
+                from concurrent.futures import ThreadPoolExecutor
+                with ThreadPoolExecutor(max_workers=4) as pool:
+                    list(pool.map(lambda _: store.initialize(), range(4)))
+                compose("restart", "--timeout", "5", "parking-analytics")
+                parking_url = base_url("parking-analytics")
+                wait_for(lambda: client.get(parking_url + "/ready").status_code == 200, "S4 restart unavailable")
+                with store.connect() as connection:
+                    assert store.read(connection) == records
+                report["concurrent_initialization_and_api_restart_preserve_rows_and_timestamps"] = "passed"
                 pricing = records["pricing"].payload
                 pricing["facilities"]["demo-central"]["rates"][0]["amount"] = 4.25
                 assert store.publish("pricing", pricing)
@@ -170,6 +189,14 @@ def verify(output=None):
                 assert fallback["occupancy"]["service_updated_at"] == baseline["occupancy"]["service_updated_at"]
                 assert fallback["occupancy"]["is_live"] is False and fallback["availability_status"] == "unknown"
                 report["postgres_outage_restart_catalog_tariffs_occupancy_preserved"] = "passed"
+                compose("start", "parking-postgres")
+                wait_for(lambda: status()["broker_connected"] and all(status()["sources"].values()),
+                         "S4 did not initialize/reconcile after PostgreSQL recovery", timeout=30)
+                recovered = client.get(parking_url + detail_path, headers=headers).json()
+                assert recovered["facility"] == baseline["facility"]
+                assert recovered["pricing"] == baseline["pricing"]
+                assert recovered["occupancy"]["service_updated_at"] == baseline["occupancy"]["service_updated_at"]
+                report["postgres_reconnect_initializes_and_restores_healthy_streams"] = "passed"
                 compose("stop", "--timeout", "5", "keycloak")
                 assert client.get(parking_url + detail_path, headers=headers).status_code == 200
                 compose("restart", "--timeout", "5", "parking-analytics")
@@ -178,6 +205,20 @@ def verify(output=None):
                 assert client.get(parking_url + detail_path, headers=headers).status_code == 503
                 report["cached_jwks_then_fail_closed_without_signing_keys"] = "passed"
                 report["scope"] = "Isolated S4, its own PostgreSQL, test Keycloak and registry dependencies; no S1/S2/S3 or team containers changed"
+        except Exception:
+            # Retain useful failure evidence before removing the isolated stack.
+            # Database errors can contain DSNs, so redact generated credentials.
+            try:
+                diagnostics = compose("logs", "--no-color", "--tail", "40", "registry-1", "registry-2",
+                                      "postgres", "parking-analytics", capture=True)
+                sensitive = [value for name, value in env.items() if value and
+                             any(part in name.upper() for part in ("PASSWORD", "SECRET", "API_KEY", "TOKEN", "DATABASE_URL"))]
+                for secret in [*sensitive, client_secret, reader_secret]:
+                    diagnostics = diagnostics.replace(secret, "<redacted>")
+                print(diagnostics, file=sys.stderr)
+            except Exception as diagnostics_error:
+                print(f"S4 verification diagnostics unavailable: {type(diagnostics_error).__name__}", file=sys.stderr)
+            raise
         finally:
             compose("down", "--volumes", "--remove-orphans", "--timeout", "5")
     if output:
