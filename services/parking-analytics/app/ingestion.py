@@ -203,6 +203,7 @@ class ParkingIngestion:
         try:
             if self.database:
                 with self.database.connect() as connection:
+                    self.database.initialize(connection)
                     self.reconcile(connection)
             else:
                 self.reconcile()
@@ -219,6 +220,7 @@ class ParkingIngestion:
             try:
                 if self.database:
                     with self.database.connect() as connection:
+                        self.database.initialize(connection)
                         connection.execute(f"LISTEN {CHANNEL}")
                         self.connected = True
                         self.reconcile(connection)
