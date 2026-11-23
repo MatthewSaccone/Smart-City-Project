@@ -1,0 +1,3005 @@
+{
+  "schema_version": 1,
+  "version": "simulated-2026-v1",
+  "source": "synthetic_utc_timetable",
+  "simulated": true,
+  "timezone": "UTC",
+  "source_updated_at": null,
+  "valid_from": "2026-11-01T00:00:00Z",
+  "valid_through": "2027-01-01T00:00:00Z",
+  "agencies": [
+    {
+      "agency_id": "agency-demo",
+      "name": "Simulated Transit Agency"
+    }
+  ],
+  "routes": [
+    {
+      "route_id": "route-5",
+      "short_name": "5",
+      "long_name": "Simulated Central Express",
+      "mode": "bus",
+      "agency_id": "agency-demo"
+    },
+    {
+      "route_id": "route-12",
+      "short_name": "12",
+      "long_name": "Simulated North Tram",
+      "mode": "tram",
+      "agency_id": "agency-demo"
+    },
+    {
+      "route_id": "route-90",
+      "short_name": "90",
+      "long_name": "Simulated Regional Train",
+      "mode": "train",
+      "agency_id": "agency-demo"
+    }
+  ],
+  "stops": [
+    {
+      "stop_id": "stop-102",
+      "name": "Central Station",
+      "latitude": 43.0098,
+      "longitude": -81.2731
+    },
+    {
+      "stop_id": "stop-103",
+      "name": "West Terminal",
+      "latitude": 43.012,
+      "longitude": -81.28
+    },
+    {
+      "stop_id": "stop-104",
+      "name": "North Park",
+      "latitude": 43.02,
+      "longitude": -81.27
+    },
+    {
+      "stop_id": "stop-999",
+      "name": "Distant Station",
+      "latitude": 43.65,
+      "longitude": -79.38
+    }
+  ],
+  "calendars": [
+    {
+      "service_id": "daily",
+      "start_date": "2026-11-01",
+      "end_date": "2026-12-31",
+      "weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    }
+  ],
+  "trips": [
+    {
+      "trip_id": "trip-5-0000",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 0,
+          "departure_seconds": 60
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 300,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0015",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 900,
+          "departure_seconds": 960
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 1200,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0030",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 1800,
+          "departure_seconds": 1860
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 2100,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0045",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 2700,
+          "departure_seconds": 2760
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 3000,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0100",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 3600,
+          "departure_seconds": 3660
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 3900,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0115",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 4500,
+          "departure_seconds": 4560
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 4800,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0130",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 5400,
+          "departure_seconds": 5460
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 5700,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0145",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 6300,
+          "departure_seconds": 6360
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 6600,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0200",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 7200,
+          "departure_seconds": 7260
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 7500,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0215",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 8100,
+          "departure_seconds": 8160
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 8400,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0230",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 9000,
+          "departure_seconds": 9060
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 9300,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0245",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 9900,
+          "departure_seconds": 9960
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 10200,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0300",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 10800,
+          "departure_seconds": 10860
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 11100,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0315",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 11700,
+          "departure_seconds": 11760
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 12000,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0330",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 12600,
+          "departure_seconds": 12660
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 12900,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0345",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 13500,
+          "departure_seconds": 13560
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 13800,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0400",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 14400,
+          "departure_seconds": 14460
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 14700,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0415",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 15300,
+          "departure_seconds": 15360
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 15600,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0430",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 16200,
+          "departure_seconds": 16260
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 16500,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0445",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 17100,
+          "departure_seconds": 17160
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 17400,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0500",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 18000,
+          "departure_seconds": 18060
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 18300,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0515",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 18900,
+          "departure_seconds": 18960
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 19200,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0530",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 19800,
+          "departure_seconds": 19860
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 20100,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0545",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 20700,
+          "departure_seconds": 20760
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 21000,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0600",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 21600,
+          "departure_seconds": 21660
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 21900,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0615",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 22500,
+          "departure_seconds": 22560
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 22800,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0630",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 23400,
+          "departure_seconds": 23460
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 23700,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0645",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 24300,
+          "departure_seconds": 24360
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 24600,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0700",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 25200,
+          "departure_seconds": 25260
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 25500,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0715",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 26100,
+          "departure_seconds": 26160
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 26400,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0730",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 27000,
+          "departure_seconds": 27060
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 27300,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0745",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 27900,
+          "departure_seconds": 27960
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 28200,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0800",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 28800,
+          "departure_seconds": 28860
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 29100,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0815",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 29700,
+          "departure_seconds": 29760
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 30000,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0830",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 30600,
+          "departure_seconds": 30660
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 30900,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0845",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 31500,
+          "departure_seconds": 31560
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 31800,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0900",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 32400,
+          "departure_seconds": 32460
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 32700,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0915",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 33300,
+          "departure_seconds": 33360
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 33600,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0930",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 34200,
+          "departure_seconds": 34260
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 34500,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-0945",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 35100,
+          "departure_seconds": 35160
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 35400,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1000",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 36000,
+          "departure_seconds": 36060
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 36300,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1015",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 36900,
+          "departure_seconds": 36960
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 37200,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1030",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 37800,
+          "departure_seconds": 37860
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 38100,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1045",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 38700,
+          "departure_seconds": 38760
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 39000,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1100",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 39600,
+          "departure_seconds": 39660
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 39900,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1115",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 40500,
+          "departure_seconds": 40560
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 40800,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1130",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 41400,
+          "departure_seconds": 41460
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 41700,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1145",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 42300,
+          "departure_seconds": 42360
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 42600,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1200",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 43200,
+          "departure_seconds": 43260
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 43500,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1215",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 44100,
+          "departure_seconds": 44160
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 44400,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1230",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 45000,
+          "departure_seconds": 45060
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 45300,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1245",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 45900,
+          "departure_seconds": 45960
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 46200,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1300",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 46800,
+          "departure_seconds": 46860
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 47100,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1315",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 47700,
+          "departure_seconds": 47760
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 48000,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1330",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 48600,
+          "departure_seconds": 48660
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 48900,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1345",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 49500,
+          "departure_seconds": 49560
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 49800,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1400",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 50400,
+          "departure_seconds": 50460
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 50700,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1415",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 51300,
+          "departure_seconds": 51360
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 51600,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1430",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 52200,
+          "departure_seconds": 52260
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 52500,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1445",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 53100,
+          "departure_seconds": 53160
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 53400,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1500",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 54000,
+          "departure_seconds": 54060
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 54300,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1515",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 54900,
+          "departure_seconds": 54960
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 55200,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1530",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 55800,
+          "departure_seconds": 55860
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 56100,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1545",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 56700,
+          "departure_seconds": 56760
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 57000,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1600",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 57600,
+          "departure_seconds": 57660
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 57900,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1615",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 58500,
+          "departure_seconds": 58560
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 58800,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1630",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 59400,
+          "departure_seconds": 59460
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 59700,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1645",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 60300,
+          "departure_seconds": 60360
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 60600,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1700",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 61200,
+          "departure_seconds": 61260
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 61500,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1715",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 62100,
+          "departure_seconds": 62160
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 62400,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1730",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 63000,
+          "departure_seconds": 63060
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 63300,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1745",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 63900,
+          "departure_seconds": 63960
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 64200,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1800",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 64800,
+          "departure_seconds": 64860
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 65100,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1815",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 65700,
+          "departure_seconds": 65760
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 66000,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1830",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 66600,
+          "departure_seconds": 66660
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 66900,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1845",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 67500,
+          "departure_seconds": 67560
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 67800,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1900",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 68400,
+          "departure_seconds": 68460
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 68700,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1915",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 69300,
+          "departure_seconds": 69360
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 69600,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1930",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 70200,
+          "departure_seconds": 70260
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 70500,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-1945",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 71100,
+          "departure_seconds": 71160
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 71400,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2000",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 72000,
+          "departure_seconds": 72060
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 72300,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2015",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 72900,
+          "departure_seconds": 72960
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 73200,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2030",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 73800,
+          "departure_seconds": 73860
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 74100,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2045",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 74700,
+          "departure_seconds": 74760
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 75000,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2100",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 75600,
+          "departure_seconds": 75660
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 75900,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2115",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 76500,
+          "departure_seconds": 76560
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 76800,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2130",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 77400,
+          "departure_seconds": 77460
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 77700,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2145",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 78300,
+          "departure_seconds": 78360
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 78600,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2200",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 79200,
+          "departure_seconds": 79260
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 79500,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2215",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 80100,
+          "departure_seconds": 80160
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 80400,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2230",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 81000,
+          "departure_seconds": 81060
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 81300,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2245",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 81900,
+          "departure_seconds": 81960
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 82200,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2300",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 82800,
+          "departure_seconds": 82860
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 83100,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2315",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 83700,
+          "departure_seconds": 83760
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 84000,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2330",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 84600,
+          "departure_seconds": 84660
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 84900,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-5-2345",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "stop-103",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 85500,
+          "departure_seconds": 85560
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 85800,
+          "departure_seconds": null
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0000",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 120
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 660,
+          "departure_seconds": 720
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0030",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 1920
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 2460,
+          "departure_seconds": 2520
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0100",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 3720
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 4260,
+          "departure_seconds": 4320
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0130",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 5520
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 6060,
+          "departure_seconds": 6120
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0200",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 7320
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 7860,
+          "departure_seconds": 7920
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0230",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 9120
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 9660,
+          "departure_seconds": 9720
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0300",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 10920
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 11460,
+          "departure_seconds": 11520
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0330",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 12720
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 13260,
+          "departure_seconds": 13320
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0400",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 14520
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 15060,
+          "departure_seconds": 15120
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0430",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 16320
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 16860,
+          "departure_seconds": 16920
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0500",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 18120
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 18660,
+          "departure_seconds": 18720
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0530",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 19920
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 20460,
+          "departure_seconds": 20520
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0600",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 21720
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 22260,
+          "departure_seconds": 22320
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0630",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 23520
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 24060,
+          "departure_seconds": 24120
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0700",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 25320
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 25860,
+          "departure_seconds": 25920
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0730",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 27120
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 27660,
+          "departure_seconds": 27720
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0800",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 28920
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 29460,
+          "departure_seconds": 29520
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0830",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 30720
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 31260,
+          "departure_seconds": 31320
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0900",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 32520
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 33060,
+          "departure_seconds": 33120
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-0930",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 34320
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 34860,
+          "departure_seconds": 34920
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1000",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 36120
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 36660,
+          "departure_seconds": 36720
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1030",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 37920
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 38460,
+          "departure_seconds": 38520
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1100",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 39720
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 40260,
+          "departure_seconds": 40320
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1130",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 41520
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 42060,
+          "departure_seconds": 42120
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1200",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 43320
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 43860,
+          "departure_seconds": 43920
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1230",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 45120
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 45660,
+          "departure_seconds": 45720
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1300",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 46920
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 47460,
+          "departure_seconds": 47520
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1330",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 48720
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 49260,
+          "departure_seconds": 49320
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1400",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 50520
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 51060,
+          "departure_seconds": 51120
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1430",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 52320
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 52860,
+          "departure_seconds": 52920
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1500",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 54120
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 54660,
+          "departure_seconds": 54720
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1530",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 55920
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 56460,
+          "departure_seconds": 56520
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1600",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 57720
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 58260,
+          "departure_seconds": 58320
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1630",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 59520
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 60060,
+          "departure_seconds": 60120
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1700",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 61320
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 61860,
+          "departure_seconds": 61920
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1730",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 63120
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 63660,
+          "departure_seconds": 63720
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1800",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 64920
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 65460,
+          "departure_seconds": 65520
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1830",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 66720
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 67260,
+          "departure_seconds": 67320
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1900",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 68520
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 69060,
+          "departure_seconds": 69120
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-1930",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 70320
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 70860,
+          "departure_seconds": 70920
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-2000",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 72120
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 72660,
+          "departure_seconds": 72720
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-2030",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 73920
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 74460,
+          "departure_seconds": 74520
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-2100",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 75720
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 76260,
+          "departure_seconds": 76320
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-2130",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 77520
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 78060,
+          "departure_seconds": 78120
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-2200",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 79320
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 79860,
+          "departure_seconds": 79920
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-2230",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 81120
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 81660,
+          "departure_seconds": 81720
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-2300",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 82920
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 83460,
+          "departure_seconds": 83520
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-12-2330",
+      "route_id": "route-12",
+      "service_id": "daily",
+      "destination": "stop-104",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": null,
+          "departure_seconds": 84720
+        },
+        {
+          "stop_id": "stop-104",
+          "arrival_seconds": 85260,
+          "departure_seconds": 85320
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-0000",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 600,
+          "departure_seconds": 660
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-0100",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 4200,
+          "departure_seconds": 4260
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-0200",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 7800,
+          "departure_seconds": 7860
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-0300",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 11400,
+          "departure_seconds": 11460
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-0400",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 15000,
+          "departure_seconds": 15060
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-0500",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 18600,
+          "departure_seconds": 18660
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-0600",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 22200,
+          "departure_seconds": 22260
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-0700",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 25800,
+          "departure_seconds": 25860
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-0800",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 29400,
+          "departure_seconds": 29460
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-0900",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 33000,
+          "departure_seconds": 33060
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-1000",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 36600,
+          "departure_seconds": 36660
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-1100",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 40200,
+          "departure_seconds": 40260
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-1200",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 43800,
+          "departure_seconds": 43860
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-1300",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 47400,
+          "departure_seconds": 47460
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-1400",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 51000,
+          "departure_seconds": 51060
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-1500",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 54600,
+          "departure_seconds": 54660
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-1600",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 58200,
+          "departure_seconds": 58260
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-1700",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 61800,
+          "departure_seconds": 61860
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-1800",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 65400,
+          "departure_seconds": 65460
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-1900",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 69000,
+          "departure_seconds": 69060
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-2000",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 72600,
+          "departure_seconds": 72660
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-2100",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 76200,
+          "departure_seconds": 76260
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-2200",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 79800,
+          "departure_seconds": 79860
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-90-2300",
+      "route_id": "route-90",
+      "service_id": "daily",
+      "destination": "stop-999",
+      "stop_times": [
+        {
+          "stop_id": "stop-999",
+          "arrival_seconds": 83400,
+          "departure_seconds": 83460
+        }
+      ]
+    },
+    {
+      "trip_id": "trip-night",
+      "route_id": "route-5",
+      "service_id": "daily",
+      "destination": "West Terminal",
+      "stop_times": [
+        {
+          "stop_id": "stop-102",
+          "arrival_seconds": 90000,
+          "departure_seconds": 90060
+        },
+        {
+          "stop_id": "stop-103",
+          "arrival_seconds": 90300,
+          "departure_seconds": null
+        }
+      ]
+    }
+  ]
+}

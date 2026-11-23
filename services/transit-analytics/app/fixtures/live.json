@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "schedule_version": "simulated-2026-v1",
+  "source": "historical_synthetic_updates",
+  "simulated": true,
+  "source_updated_at": "2026-11-10T11:59:35Z",
+  "trips": {
+    "updated_at": "2026-11-10T11:59:35Z",
+    "coverage_status": "partial",
+    "items": [
+      {
+        "trip_id": "trip-5-1200",
+        "stop_id": "stop-102",
+        "service_date": "2026-11-10",
+        "vehicle_id": "vehicle-demo-31",
+        "updated_at": "2026-11-10T11:59:35Z",
+        "arrival_estimated_at": "2026-11-10T12:03:00Z",
+        "departure_estimated_at": "2026-11-10T12:04:00Z"
+      }
+    ]
+  },
+  "disruptions": {
+    "updated_at": "2026-11-10T11:59:20Z",
+    "coverage_status": "partial",
+    "items": [
+      {
+        "disruption_id": "demo-disruption",
+        "kind": "disruption",
+        "status": "active",
+        "message": "SIMULATED example: disruption",
+        "route_ids": [
+          "route-5"
+        ],
+        "stop_ids": [
+          "stop-102"
+        ],
+        "starts_at": "2026-11-10T12:00:00Z",
+        "ends_at": null,
+        "updated_at": "2026-11-10T11:59:20Z"
+      },
+      {
+        "disruption_id": "demo-cancellation",
+        "kind": "cancellation",
+        "status": "active",
+        "message": "SIMULATED example: cancellation",
+        "route_ids": [
+          "route-5"
+        ],
+        "stop_ids": [
+          "stop-102"
+        ],
+        "starts_at": "2026-11-10T12:00:00Z",
+        "ends_at": null,
+        "updated_at": "2026-11-10T11:59:20Z"
+      },
+      {
+        "disruption_id": "demo-outage",
+        "kind": "outage",
+        "status": "planned",
+        "message": "SIMULATED example: outage",
+        "route_ids": [
+          "route-5"
+        ],
+        "stop_ids": [
+          "stop-102"
+        ],
+        "starts_at": "2026-11-10T12:00:00Z",
+        "ends_at": null,
+        "updated_at": "2026-11-10T11:59:20Z"
+      },
+      {
+        "disruption_id": "demo-detour",
+        "kind": "detour",
+        "status": "resolved",
+        "message": "SIMULATED example: detour",
+        "route_ids": [
+          "route-5"
+        ],
+        "stop_ids": [
+          "stop-102"
+        ],
+        "starts_at": "2026-11-10T12:00:00Z",
+        "ends_at": null,
+        "updated_at": "2026-11-10T11:59:20Z"
+      }
+    ]
+  },
+  "occupancy": {
+    "updated_at": "2026-11-10T11:59:30Z",
+    "coverage_status": "partial",
+    "items": [
+      {
+        "route_id": "route-5",
+        "vehicle_id": "vehicle-demo-31",
+        "occupancy_level": "moderate",
+        "passenger_count": null,
+        "capacity": null,
+        "occupancy_percent": null,
+        "observed_at": "2026-11-10T11:59:30Z"
+      },
+      {
+        "route_id": "route-12",
+        "vehicle_id": "vehicle-demo-12",
+        "occupancy_level": "full",
+        "passenger_count": 50,
+        "capacity": 50,
+        "occupancy_percent": 100,
+        "observed_at": "2026-11-10T11:59:30Z"
+      }
+    ]
+  }
+}

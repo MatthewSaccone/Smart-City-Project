@@ -1,0 +1,113 @@
+{
+  "measured_at": "2026-11-23T01:22:35.266380Z",
+  "environment": {
+    "client_python": "3.11.9",
+    "client_os": "Windows-10-10.0.26200-SP0",
+    "logical_cpus": 20,
+    "client_packages": {
+      "httpx": "0.28.1",
+      "httpcore": "1.0.9",
+      "anyio": "4.16.0",
+      "sniffio": "1.3.1"
+    }
+  },
+  "conditions": {
+    "concurrency": 50,
+    "rounds": 3,
+    "baseline_requests": 20,
+    "http_timeout_seconds": 5,
+    "workers": 1,
+    "dataset": "169 simulated daily trips, 4 stops, 3 routes, historical simulated updates",
+    "external_apis_used": false,
+    "warmup_requests": 6,
+    "persistent_connections": true
+  },
+  "production_scalability_verified": false,
+  "contract_preflight": "passed: all six real HTTP responses match adopted OpenAPI",
+  "baseline": {
+    "requests": 20,
+    "successful_responses": 20,
+    "http_status_counts": {
+      "200": 20
+    },
+    "http_errors": 0,
+    "timeouts": 0,
+    "errors": [],
+    "peak_in_flight": 1,
+    "latency": {
+      "average_ms": 1.701,
+      "p50_ms": 1.634,
+      "p95_ms": 2.041,
+      "max_ms": 2.371
+    },
+    "arrival_latency": {
+      "average_ms": 1.701,
+      "p50_ms": 1.634,
+      "p95_ms": 2.041,
+      "max_ms": 2.371
+    },
+    "arrival_requests": 20,
+    "arrivals_within_1500_ms": 20,
+    "all_arrivals_met_1500_ms": true,
+    "wave_size": 1,
+    "waves": 20
+  },
+  "concurrent_arrivals": {
+    "requests": 150,
+    "successful_responses": 150,
+    "http_status_counts": {
+      "200": 150
+    },
+    "http_errors": 0,
+    "timeouts": 0,
+    "errors": [],
+    "peak_in_flight": 50,
+    "latency": {
+      "average_ms": 55.53,
+      "p50_ms": 52.597,
+      "p95_ms": 99.576,
+      "max_ms": 116.379
+    },
+    "arrival_latency": {
+      "average_ms": 55.53,
+      "p50_ms": 52.597,
+      "p95_ms": 99.576,
+      "max_ms": 116.379
+    },
+    "arrival_requests": 150,
+    "arrivals_within_1500_ms": 150,
+    "all_arrivals_met_1500_ms": true,
+    "wave_size": 50,
+    "waves": 3
+  },
+  "concurrent_mixed": {
+    "requests": 150,
+    "successful_responses": 150,
+    "http_status_counts": {
+      "200": 150
+    },
+    "http_errors": 0,
+    "timeouts": 0,
+    "errors": [],
+    "peak_in_flight": 50,
+    "latency": {
+      "average_ms": 60.989,
+      "p50_ms": 57.467,
+      "p95_ms": 98.833,
+      "max_ms": 108.684
+    },
+    "arrival_latency": {
+      "average_ms": 59.006,
+      "p50_ms": 52.529,
+      "p95_ms": 99.458,
+      "max_ms": 102.19
+    },
+    "arrival_requests": 25,
+    "arrivals_within_1500_ms": 25,
+    "all_arrivals_met_1500_ms": true,
+    "wave_size": 50,
+    "waves": 3
+  },
+  "t055_local_pass": true,
+  "t061_local_pass": true
+}

@@ -1,0 +1,17 @@
+# S6-owned persistence and operational settings; root infrastructure is unchanged.
+services:
+  transit-analytics:
+    environment:
+      TRANSIT_DATABASE_PATH: /app/data/transit.sqlite
+      TRANSIT_REFRESH_SECONDS: ${TRANSIT_REFRESH_SECONDS:-5}
+      TRANSIT_LIVE_MODE: ${TRANSIT_LIVE_MODE:-file}
+      TRANSIT_LIVE_RETENTION_SECONDS: ${TRANSIT_LIVE_RETENTION_SECONDS:-86400}
+    volumes:
+      - transit-datasets:/app/data
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  transit-datasets:

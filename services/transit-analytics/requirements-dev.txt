@@ -1,0 +1,7 @@
+-r requirements.txt
+pytest>=8.0,<9.0
+jsonschema>=4.23,<5.0
+PyYAML>=6.0,<7.0
+# Avoid repeated optional-module filesystem probes in HTTPX/httpcore's asyncio
+# backend during load measurements (particularly costly on Windows).
+sniffio>=1.3,<2.0
