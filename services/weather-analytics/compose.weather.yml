@@ -1,0 +1,20 @@
+# S5-owned persistence and provider settings; root infrastructure is unchanged.
+# docker compose -f docker-compose.yml -f services/weather-analytics/compose.weather.yml up --build -d weather-analytics
+services:
+  weather-analytics:
+    environment:
+      WEATHER_PROVIDER: ${WEATHER_PROVIDER:-open_meteo}
+      WEATHER_DATABASE_PATH: /app/data/weather.sqlite
+      WEATHER_REFRESH_SECONDS: ${WEATHER_REFRESH_SECONDS:-300}
+      WEATHER_RETRY_BACKOFF_SECONDS: ${WEATHER_RETRY_BACKOFF_SECONDS:-30}
+      WEATHER_PROVIDER_TIMEOUT_SECONDS: ${WEATHER_PROVIDER_TIMEOUT_SECONDS:-1.5}
+      WEATHER_COVERAGE_BBOX: ${WEATHER_COVERAGE_BBOX:-41.6,-95.2,56.9,-74.3}
+    volumes:
+      - weather-data:/app/data
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  weather-data:
