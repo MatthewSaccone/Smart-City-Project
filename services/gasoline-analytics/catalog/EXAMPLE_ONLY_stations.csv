@@ -1,0 +1,4 @@
+station_id,name,address,latitude,longitude,available_fuel_types
+example-001,Synthetic Sample Station A,"123 Example Road, London, ON",43.0096,-81.2737,regular_87|premium_91|diesel
+example-002,Synthetic Sample Station B,"456 Example Avenue, London, ON",43.0102,-81.2702,regular_87|premium_91
+example-003,Synthetic Sample Station C,"789 Example Street, London, ON",43.0122,-81.2750,regular_87|midgrade_89|premium_93

@@ -7,7 +7,7 @@ services:
       POSTGRES_DB: traffic_predictor
       POSTGRES_PASSWORD: ${S2_DB_PASSWORD:?Set S2_DB_PASSWORD in your shell before running Docker Compose}
     ports:
-      - "127.0.0.1:55432:5432"
+      - "127.0.0.1:56432:5432"
     volumes:
       - s2_postgres_data:/var/lib/postgresql/data
     healthcheck:

@@ -1,4 +1,4 @@
-﻿FROM python:3.12-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -9,6 +9,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY gasoline-analytics/app/ ./app/
 
 COPY shared/ ./shared/
+
+ENV S7_DB_PATH=/app/data/gasoline.sqlite3
 
 ENV PORT=8080
 

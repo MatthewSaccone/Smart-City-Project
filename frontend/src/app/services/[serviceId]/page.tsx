@@ -9,6 +9,7 @@ type Field = {
   value?: string;
   min?: number;
   max?: number;
+  required?: boolean;
 };
 
 type Service = {
@@ -93,8 +94,8 @@ const services = new Map<string, Service>([
       ...coordinates(),
       radius,
       { label: "Fuel type", name: "fuel_type", value: "regular_87" },
-      { label: "Maximum price (CAD/L)", name: "max_price_per_litre",
-        type: "number", value: "1.70", min: 0 },
+      { label: "Maximum price (CAD/L, optional)", name: "max_price_per_litre",
+        type: "number", value: "", min: 0.001, max: 20, required: false },
     ],
   }],
 ]);
@@ -119,7 +120,7 @@ export default async function ServicePage({
         min={field.min}
         max={field.max}
         step={field.type === "number" ? "any" : undefined}
-        required
+        required={field.required ?? true}
         className="rounded-md border border-slate-300 p-2"
       />
     </label>
@@ -135,7 +136,7 @@ export default async function ServicePage({
         <h1 className="mt-5 text-3xl font-bold">{service.title}</h1>
         <p className="mt-2 text-slate-600">{service.description}</p>
 
-      {["parking-analytics", "live-traffic", "construction-incidents"].includes(serviceId) ? (
+      {["parking-analytics", "live-traffic", "construction-incidents", "gasoline-analytics"].includes(serviceId) ? (
           <ServiceRequestForm serviceId={serviceId} action={service.action}>
             {fields}
           </ServiceRequestForm>

@@ -25,6 +25,14 @@ const routes = {
       radius_m: "radius_m",
     },
   },
+  "gasoline-analytics": {
+    url: "http://localhost:8087/v1/gas-stations",
+    query: {
+      latitude: "latitude",
+      longitude: "longitude",
+      radius_m: "radius_m",
+    },
+  },
 } as const;
 
 export async function POST(request: Request) {
@@ -90,13 +98,40 @@ export async function POST(request: Request) {
     } else if (
       id === "parking-analytics" ||
       id === "live-traffic" ||
-      id === "construction-incidents"
+      id === "construction-incidents" ||
+      id === "gasoline-analytics"
     ) {
       const route = routes[id];
       url = new URL(route.url);
 
       for (const [field, parameter] of Object.entries(route.query)) {
         url.searchParams.set(parameter, String(numberField(field)));
+      }
+
+      if (id === "gasoline-analytics") {
+        const latitude = numberField("latitude");
+        const longitude = numberField("longitude");
+        const radius = numberField("radius_m");
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180 ||
+            radius <= 0 || radius > 25000) {
+          throw new Error("Coordinates must be valid and search radius must be between 0 and 25,000 metres.");
+        }
+
+        const fuelType = form.get("fuel_type");
+        const supportedFuels = ["regular_87", "midgrade_89", "premium_91", "premium_93", "diesel"];
+        if (typeof fuelType !== "string" || !supportedFuels.includes(fuelType)) {
+          throw new Error("Choose a supported fuel type.");
+        }
+        url.searchParams.set("fuel_type", fuelType);
+
+        const maximumPrice = form.get("max_price_per_litre");
+        if (typeof maximumPrice === "string" && maximumPrice.trim() !== "") {
+          const price = numberField("max_price_per_litre");
+          if (price < 0.001 || price > 20 || !/^\d+(?:\.\d{1,3})?$/.test(maximumPrice.trim())) {
+            throw new Error("Maximum price must be between 0.001 and 20.000 CAD/L (up to three decimal places).");
+          }
+          url.searchParams.set("max_price_per_litre", maximumPrice.trim());
+        }
       }
     } else {
       return Response.json(
