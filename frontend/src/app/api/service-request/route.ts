@@ -1,3 +1,5 @@
+import { accessToken, frontendUrl } from "@/lib/auth";
+
 const routes = {
   "parking-analytics": {
     url: "http://localhost:8084/v1/parking/facilities",
@@ -35,6 +37,9 @@ const routes = {
 } as const;
 
 export async function POST(request: Request) {
+  if (request.headers.get("origin") !== new URL(frontendUrl).origin) return Response.json({ message: "Forbidden" }, { status: 403 });
+  const token = await accessToken();
+  if (!token) return Response.json({ message: "Sign in with Authentik before making a request." }, { status: 401 });
   let form: FormData;
 
   try {
@@ -122,8 +127,11 @@ export async function POST(request: Request) {
   }
 
   try {
+    const upstreamHeaders = new Headers(options.headers);
+    upstreamHeaders.set("Authorization", `Bearer ${token}`);
     const response = await fetch(url, {
       ...options,
+      headers: upstreamHeaders,
       signal: AbortSignal.timeout(5000),
     });
 

@@ -2,9 +2,9 @@ openapi: 3.1.0
 info:
   title: Smart City — S7 Gasoline Price Analytics API
   version: 1.0.0
-  description: T008 S7 prescriptive contract, aligned with common standards. Two different PR1 S7 requirements are
-    both labeled FR3 and distinguished here as FR3(timestamp) and FR3(comparison). All quoted station information
-    and prices in examples are synthetic. Providers and user identity issuer are not confirmed.
+  description: T008 S7 prescriptive contract, aligned with common standards. Two different PR1 S7 requirements are both labeled
+    FR3 and distinguished here as FR3(timestamp) and FR3(comparison). All quoted station information and prices in examples
+    are synthetic. Providers and user identity issuer are not confirmed.
 servers:
 - url: http://localhost:8087
   description: Illustrative local development server; client gateway routing must be documented separately.
@@ -14,17 +14,41 @@ tags:
 - name: Operations
   description: Unversioned liveness and readiness probes.
 paths:
+  /auth/check:
+    get:
+      summary: Verify authenticated S7 access
+      operationId: checkAuthentication
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Authenticated request accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [service, authenticated]
+                properties:
+                  service:
+                    type: string
+                  authenticated:
+                    type: boolean
+        '401':
+          description: Invalid or missing access token
+        '403':
+          description: Insufficient permission
   /v1/gas-stations:
     get:
       tags:
       - Gasoline Prices
       operationId: searchGasStations
       summary: Find nearby fuel stations and reported prices
-      description: PR1 S7 FR1, FR4; QR1, QR3. Geodesic 25,000m maximum radius. Fuel-only search includes known stations
-        even if price is unknown. Price bounds require fuel_type and select matching report quote; reversed bounds
-        422. Price/time sorting requires fuel_type. Stale quotes included by default but explicitly marked. Pagination
-        after filtering and deterministic sorting by station_id tie-breaker.
-      security: []
+      description: PR1 S7 FR1, FR4; QR1, QR3. Geodesic 25,000m maximum radius. Fuel-only search includes known stations even
+        if price is unknown. Price bounds require fuel_type and select matching report quote; reversed bounds 422. Price/time
+        sorting requires fuel_type. Stale quotes included by default but explicitly marked. Pagination after filtering and
+        deterministic sorting by station_id tie-breaker.
+      security:
+      - BearerAuth: []
       x-pr1-requirements:
       - FR1
       - FR4
@@ -108,15 +132,20 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /v1/gas-stations/{station_id}:
     get:
       tags:
       - Gasoline Prices
       operationId: getGasStation
       summary: Retrieve selected station, prices and latest accepted report time
-      description: PR1 S7 FR1, FR3 (timestamp), QR3. Single station details. distance_m is null without a search
-        origin. Latest accepted report timestamp considers all fuels. Unknown station returns 404.
-      security: []
+      description: PR1 S7 FR1, FR3 (timestamp), QR3. Single station details. distance_m is null without a search origin. Latest
+        accepted report timestamp considers all fuels. Unknown station returns 404.
+      security:
+      - BearerAuth: []
       x-pr1-requirements:
       - FR1
       - FR3(timestamp)
@@ -185,16 +214,21 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /v1/gas-prices/comparisons:
     get:
       tags:
       - Gasoline Prices
       operationId: compareGasPrices
       summary: Compare latest eligible reported prices among stations in an area
-      description: PR1 S7 FR3 (comparison), QR1. Fuel type mandatory. Exclude stale reports by default. Statistics
-        cover all eligible stations before pagination; insufficient comparisons return null summary statistics rather
-        than fabricated zero. Unweighted average one latest accepted price per station; equal price ties use station_id.
-      security: []
+      description: PR1 S7 FR3 (comparison), QR1. Fuel type mandatory. Exclude stale reports by default. Statistics cover all
+        eligible stations before pagination; insufficient comparisons return null summary statistics rather than fabricated
+        zero. Unweighted average one latest accepted price per station; equal price ties use station_id.
+      security:
+      - BearerAuth: []
       x-pr1-requirements:
       - FR3(comparison)
       - QR1
@@ -292,17 +326,21 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /v1/gas-stations/{station_id}/price-reports:
     post:
       tags:
       - Gasoline Prices
       operationId: createGasPriceReport
       summary: Submit an authenticated price report for a known gas station
-      description: PR1 S7 FR2, FR3 (timestamp), QR2, QR4. Station ID is path-only. Validated user identity determines
-        private owner; server assigns UUID and acceptance time. Price is CAD/L with max three decimals. observed_at
-        within 7 days before or 5 minutes after request receipt. On successful creation, persist report and idempotency
-        mapping durably before returning 201. Same key, identity, station and canonical body yields same initial
-        201 for 24 hours; changed body 409. Reports are user claims not externally verified.
+      description: PR1 S7 FR2, FR3 (timestamp), QR2, QR4. Station ID is path-only. Validated user identity determines private
+        owner; server assigns UUID and acceptance time. Price is CAD/L with max three decimals. observed_at within 7 days
+        before or 5 minutes after request receipt. On successful creation, persist report and idempotency mapping durably
+        before returning 201. Same key, identity, station and canonical body yields same initial 201 for 24 hours; changed
+        body 409. Reports are user claims not externally verified.
       security:
       - BearerAuth: []
       x-pr1-requirements:
@@ -316,8 +354,7 @@ paths:
       - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
-        description: Server rejects additional properties including station_id, submitted_at, user_id, owner_id
-          and verification_status.
+        description: Server rejects additional properties including station_id, submitted_at, user_id, owner_id and verification_status.
         content:
           application/json:
             schema:
@@ -407,8 +444,8 @@ paths:
       - Operations
       operationId: getReadiness
       summary: Readiness to query and accept durable gas-price reports
-      description: 200 when S7-owned station catalog and report storage support necessary reads/writes, including
-        using a persisted catalog through provider outage. 503 otherwise. Do not expose credentials.
+      description: 200 when S7-owned station catalog and report storage support necessary reads/writes, including using a
+        persisted catalog through provider outage. 503 otherwise. Do not expose credentials.
       security: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
@@ -435,8 +472,8 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
-      description: Trusted authenticated end-user access token; issuer/claims and verification governed by platform
-        security design.
+      bearerFormat: JWT
+      description: Authentik access token with smart-city scope and signed roles and permissions.
   parameters:
     RequestId:
       in: header
@@ -446,8 +483,7 @@ components:
         type: string
         minLength: 1
         maxLength: 128
-      description: Untrusted optional input; first trusted ingress validates or replaces. All responses return trusted
-        X-Request-ID.
+      description: Untrusted optional input; first trusted ingress validates or replaces. All responses return trusted X-Request-ID.
     Latitude:
       in: query
       name: latitude
@@ -588,8 +624,8 @@ components:
         minLength: 8
         maxLength: 128
         pattern: ^[A-Za-z0-9_-]{8,128}$
-      description: Scoped to verified user, station and create operation; retained 24 h. Same key + same body returns
-        original 201; conflicting body returns 409.
+      description: Scoped to verified user, station and create operation; retained 24 h. Same key + same body returns original
+        201; conflicting body returns 409.
   headers:
     RequestId:
       description: Trusted request correlation ID. On error also in error.request_id.
@@ -890,8 +926,8 @@ components:
       - is_live
       - is_stale
       additionalProperties: false
-      description: Latest accepted user report for a station and fuel. is_live is always false. When observed_at
-        missing, submitted_at is only a recency proxy.
+      description: Latest accepted user report for a station and fuel. is_live is always false. When observed_at missing,
+        submitted_at is only a recency proxy.
     StationSearchItem:
       type: object
       properties:
@@ -1072,8 +1108,8 @@ components:
       - spread_per_litre
       - comparison_status
       additionalProperties: false
-      description: Statistics from all eligible matching stations before pagination. For <2 stations, all four numeric
-        statistics are null.
+      description: Statistics from all eligible matching stations before pagination. For <2 stations, all four numeric statistics
+        are null.
     ComparisonResponse:
       type: object
       properties:
@@ -1124,8 +1160,8 @@ components:
       - price_per_litre
       - currency
       additionalProperties: false
-      description: observed_at optional; reject time more than 7 days before receipt or 5 minutes after. No owner,
-        station, ID, verification, or submitted_at fields accepted.
+      description: observed_at optional; reject time more than 7 days before receipt or 5 minutes after. No owner, station,
+        ID, verification, or submitted_at fields accepted.
     PriceReportResponse:
       type: object
       properties:

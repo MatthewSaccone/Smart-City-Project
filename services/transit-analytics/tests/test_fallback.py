@@ -113,11 +113,11 @@ def test_expired_retention_discards_live_counts_but_preserves_schedules(client, 
     assert client.get(ARRIVALS).json()["items"]
 
 
-def test_schedule_horizon_and_startup_without_essential_data(monkeypatch, configuration):
+def test_schedule_horizon_and_startup_without_essential_data(monkeypatch, configuration, identity):
     path = os.environ["TRANSIT_SCHEDULE_FILE"]
     from pathlib import Path
     Path(path).unlink()
-    with TestClient(main.app) as client:
+    with TestClient(main.app, headers={"Authorization": "Bearer " + identity.token()}) as client:
         assert client.get("/health").status_code == 200
         assert client.get("/ready").status_code == 503
         assert client.get(ARRIVALS).status_code == 503

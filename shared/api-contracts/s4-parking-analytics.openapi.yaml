@@ -3,11 +3,10 @@ info:
   title: Smart City — S4 Parking Analytics API
   version: 1.1.0
   description: T008 design contract for parking facility search, time-location-based occupancy estimation, selected-facility
-    rates and fees, and provider-outage fallback. Follows Smart City Common API Standards. PR1 sets facility-information
-    latency <= 2,000 ms, 25 concurrent prediction requests, update timestamps and degraded behavior. S4 design
-    choices include 300-second occupancy and 24-hour price freshness limits. The specification does not assert
-    implementation or provider selection. All successful timestamp outputs are UTC ISO 8601/RFC 3339 with Z; timezone-aware
-    offset inputs accepted and normalized.
+    rates and fees, and provider-outage fallback. Follows Smart City Common API Standards. PR1 sets facility-information latency
+    <= 2,000 ms, 25 concurrent prediction requests, update timestamps and degraded behavior. S4 design choices include 300-second
+    occupancy and 24-hour price freshness limits. The specification does not assert implementation or provider selection.
+    All successful timestamp outputs are UTC ISO 8601/RFC 3339 with Z; timezone-aware offset inputs accepted and normalized.
 tags:
 - name: Parking Facilities
   description: Public catalog, availability and pricing queries
@@ -22,9 +21,9 @@ paths:
       - Parking Facilities
       operationId: searchParkingFacilities
       summary: Search parking facilities and retrieve current/degraded availability summaries
-      description: 'S4 FR1/FR2, QR1/QR2/QR4. Searches by facility-center bounding box with 2-degree maximum latitude
-        and longitude spans; no antimeridian-crossing box. Unknown occupancy does not imply available parking.
-        Filter, stable-sort, then paginate. Empty results use items: [].'
+      description: 'S4 FR1/FR2, QR1/QR2/QR4. Searches by facility-center bounding box with 2-degree maximum latitude and longitude
+        spans; no antimeridian-crossing box. Unknown occupancy does not imply available parking. Filter, stable-sort, then
+        paginate. Empty results use items: [].'
       x-pr1-requirements:
       - S4 FR1
       - S4 FR2
@@ -32,7 +31,7 @@ paths:
       - S4 QR2
       - S4 QR4
       security:
-      - ServiceBearer: []
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/MinLatitude'
@@ -112,15 +111,17 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '403':
+          description: Insufficient permissions
   /v1/parking/facilities/{facility_id}:
     get:
       tags:
       - Parking Facilities
       operationId: getParkingFacility
       summary: Retrieve one facility with occupancy, parking rates and additional fees
-      description: S4 FR2/FR3, QR1/QR2/QR4. Rates and fees are informational, not a final quote. Missing pricing
-        is explicit in the pricing snapshot; null measurement is not zero. Existing facility data remains available
-        when occupancy source fails.
+      description: S4 FR2/FR3, QR1/QR2/QR4. Rates and fees are informational, not a final quote. Missing pricing is explicit
+        in the pricing snapshot; null measurement is not zero. Existing facility data remains available when occupancy source
+        fails.
       x-pr1-requirements:
       - S4 FR2
       - S4 FR3
@@ -128,7 +129,7 @@ paths:
       - S4 QR2
       - S4 QR4
       security:
-      - ServiceBearer: []
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/FacilityId'
@@ -227,24 +228,25 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '403':
+          description: Insufficient permissions
   /v1/parking/occupancy/estimate:
     post:
       tags:
       - Occupancy Estimation
       operationId: estimateParkingOccupancy
       summary: Compute occupancy from pseudonymous timestamped location observations
-      description: S4 FR2/QR3. Restricted service-to-service computation only, no storage of submitted observations
-        and no update to public occupancy cache. Uses a 120-second window, requires latest subject observation
-        at most 60 seconds old, minimum 30-second continuous dwell and <=60-second sample gaps; nearest facility
-        wins overlapping geofences. Identical subject-time coordinates deduplicated; contradictory same-time coordinates
-        rejected. Optional as_of defaults to current UTC time and may not exceed receipt time by >60 seconds.
-        Historical replays are never labeled live. A request with no usable observations returns unknown rather
-        than zero occupancy.
+      description: S4 FR2/QR3. Restricted service-to-service computation only, no storage of submitted observations and no
+        update to public occupancy cache. Uses a 120-second window, requires latest subject observation at most 60 seconds
+        old, minimum 30-second continuous dwell and <=60-second sample gaps; nearest facility wins overlapping geofences.
+        Identical subject-time coordinates deduplicated; contradictory same-time coordinates rejected. Optional as_of defaults
+        to current UTC time and may not exceed receipt time by >60 seconds. Historical replays are never labeled live. A request
+        with no usable observations returns unknown rather than zero occupancy.
       x-pr1-requirements:
       - S4 FR2
       - S4 QR3
       security:
-      - ServiceBearer: []
+      - BearerAuth: []
       x-required-permission: parking:estimate
       parameters:
       - $ref: '#/components/parameters/RequestId'
@@ -313,11 +315,12 @@ paths:
           $ref: '#/components/responses/Unavailable'
   /v1/parking/ingestion/status:
     get:
-      tags: [Parking]
+      tags:
+      - Parking
       operationId: getParkingIngestionStatus
       summary: Inspect independent catalog, pricing and occupancy refresh/cache health
       security:
-      - ServiceBearer: []
+      - BearerAuth: []
       responses:
         '200':
           description: Operational state without source paths, credentials or user observations.
@@ -332,6 +335,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '503':
           $ref: '#/components/responses/Unavailable'
+        '403':
+          description: Insufficient permissions
   /health:
     get:
       tags:
@@ -362,8 +367,8 @@ paths:
       - Operations
       operationId: getReadiness
       summary: Readiness to return facility catalog in normal or degraded/fallback mode
-      description: A usable facility catalog is essential. Loss of live occupancy data does not alone make the
-        service unready when a truthful fallback can be provided. Monitoring access restricted by network policy.
+      description: A usable facility catalog is essential. Loss of live occupancy data does not alone make the service unready
+        when a truthful fallback can be provided. Monitoring access restricted by network policy.
       security: []
       responses:
         '200':
@@ -385,12 +390,11 @@ paths:
           $ref: '#/components/responses/Unavailable'
 components:
   securitySchemes:
-    ServiceBearer:
+    BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Trusted RS256 JWT checked against the same Keycloak issuer, audience and JWKS as S2/S3.
-        All parking operations require identity; occupancy estimation also requires the signed parking:estimate permission.
+      description: Authentik access token with smart-city scope and signed roles and permissions.
   parameters:
     RequestId:
       name: X-Request-ID
@@ -554,7 +558,18 @@ components:
           type: number
         persistent_cache:
           type: boolean
-      required: [mode, sources, revisions, last_success_at, updates, notifications_received, notifications_rejected, broker_connected, consecutive_failures, retry_seconds, persistent_cache]
+      required:
+      - mode
+      - sources
+      - revisions
+      - last_success_at
+      - updates
+      - notifications_received
+      - notifications_rejected
+      - broker_connected
+      - consecutive_failures
+      - retry_seconds
+      - persistent_cache
     Pagination:
       type: object
       additionalProperties: false
@@ -579,8 +594,7 @@ components:
       - offset
       - total
       - has_more
-      description: Standard offset-pagination metadata. If total is unknown, has_more is determined from one extra
-        result.
+      description: Standard offset-pagination metadata. If total is unknown, has_more is determined from one extra result.
     Facility:
       type: object
       additionalProperties: false
@@ -694,8 +708,8 @@ components:
       - is_stale
       - source
       - data_status
-      description: A fresh live estimate requires latest observation no older than 300 seconds. Stale counts are
-        not evidence of currently available spaces.
+      description: A fresh live estimate requires latest observation no older than 300 seconds. Stale counts are not evidence
+        of currently available spaces.
     PricingOverview:
       type: object
       additionalProperties: false
@@ -840,8 +854,8 @@ components:
       - is_stale
       - source
       - data_status
-      description: 'When unavailable: empty rates and fees, null currency/tax/timestamps, is_stale true, status
-        unavailable. Unknown does not imply free.'
+      description: 'When unavailable: empty rates and fees, null currency/tax/timestamps, is_stale true, status unavailable.
+        Unknown does not imply free.'
     FacilitySearchItem:
       type: object
       additionalProperties: false
@@ -955,8 +969,8 @@ components:
         as_of: *id013
       required:
       - observations
-      description: as_of is optional, defaults to server time; must not be more than 60 seconds in the future.
-        Conflicting positions at one subject timestamp are invalid. Unknown body keys rejected.
+      description: as_of is optional, defaults to server time; must not be more than 60 seconds in the future. Conflicting
+        positions at one subject timestamp are invalid. Unknown body keys rejected.
     OccupancyEstimate:
       type: object
       additionalProperties: false

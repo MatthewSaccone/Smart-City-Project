@@ -291,7 +291,7 @@ The approved OpenAPI document and this Markdown contract define the target imple
 ### 8.1 Version 1.1 access migration
 
 This feature branch implements the requested S2 authentication integration with the
-existing S3/Keycloak identity provider. Requiring tokens changes the previous anonymous
+existing S3/Authentik identity provider. Requiring tokens changes the previous anonymous
 access policy, so this migration must be reviewed with the affected clients before
 deployment. Paths and request/response models remain `/v1`.
 
@@ -300,7 +300,7 @@ deployment. Paths and request/response models remain `/v1`.
    are required. The configured clock tolerance is 0–60 seconds (default 30).
 2. Frontend/application clients must obtain identity-provider access tokens; internal
    callers should use a confidential service-account client with client credentials.
-   Configure the Keycloak audience mapper so issued tokens include `smart-city-api`.
+   Configure the Authentik OAuth provider client ID as `smart-city-api`.
    Any valid identity for the configured audience may access these read-only analytics;
    no new moderator role or ownership rule is introduced.
 3. Consumers and benchmark clients must send `Authorization: Bearer <access_token>`

@@ -1,3 +1,4 @@
+from shared.auth import configure_openapi, protect_service
 import logging
 import os
 import asyncio
@@ -107,7 +108,7 @@ async def lifespan(app: FastAPI):
             await registry_client.stop()
 
 
-app = FastAPI(
+app = FastAPI(dependencies=[protect_service("s2")],
     title="Traffic Predictor",
     version="1.2.0",
     lifespan=lifespan,
@@ -162,3 +163,6 @@ def root():
         "service": SERVICE_ID,
         "message": "Starter service is running",
     }
+
+
+configure_openapi(app)

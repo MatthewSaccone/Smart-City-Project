@@ -194,8 +194,8 @@ def test_unsafe_or_incomplete_configuration_rejected(jwt_configuration, monkeypa
         auth.JWTSettings.from_env()
 
 
-def test_development_keycloak_http_requires_both_flags(jwt_configuration, monkeypatch):
-    monkeypatch.setenv("JWT_JWKS_URL", "http://keycloak:8080/realms/smart-city/protocol/openid-connect/certs")
+def test_development_authentik_http_requires_both_flags(jwt_configuration, monkeypatch):
+    monkeypatch.setenv("JWT_JWKS_URL", "http://authentik-server:9000/application/o/smart-city/jwks/")
     monkeypatch.setenv("JWT_ALLOW_INSECURE_JWKS", "true")
     monkeypatch.setenv("APP_ENV", "production")
     with pytest.raises(ValueError):

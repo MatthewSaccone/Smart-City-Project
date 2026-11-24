@@ -23,7 +23,7 @@ def isolated_configuration(monkeypatch, identity):
         monkeypatch.setenv(name, value)
     identity.available = True
     from test_parking import ESTIMATE_HEADERS
-    monkeypatch.setitem(ESTIMATE_HEADERS, "Authorization", "Bearer " + identity.token(permissions=["parking:estimate"]))
+    monkeypatch.setitem(ESTIMATE_HEADERS, "Authorization", "Bearer " + identity.token(roles=["service"], permissions=["parking:estimate"]))
 
 
 @pytest.fixture

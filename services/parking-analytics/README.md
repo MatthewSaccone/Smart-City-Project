@@ -5,7 +5,7 @@ observations. The catalog and bundled observations are **simulated**, not a live
 The service implements the adopted [T008 S4 contract](../../docs/api/contracts/S4-Parking-Analytics.md)
 and [common standards](../../docs/api/API-Standards.md), including selected-facility tariffs,
 independent freshness metadata, outage fallback, pagination and JWT authorization.
-S4 now shares S2's tested Keycloak verifier and implements [T010 data integration](T010.md).
+S4 now shares S2's tested Authentik verifier and implements [T010 data integration](T010.md).
 See [JWT setup](AUTHENTICATION.md), the [original task results](VERIFICATION.md), and
 [authorization/T010 integration evidence](verification-auth-t010.json) and
 [database startup/recovery evidence](verification-database.json). S1, S3, GUI and T009 remain unchanged.
@@ -19,14 +19,14 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r services/parking-analytics/requirements-dev.txt
 $env:PYTHONPATH = (Resolve-Path .\services).Path
 $env:REGISTRY_URL = ""
-$env:JWT_ISSUER = 'http://localhost:8088/realms/smart-city'
+$env:JWT_ISSUER = 'http://localhost:8088/application/o/smart-city/'
 $env:JWT_AUDIENCE = 'smart-city-api'
-$env:JWT_JWKS_URL = 'http://localhost:8088/realms/smart-city/protocol/openid-connect/certs'
+$env:JWT_JWKS_URL = 'http://localhost:8088/application/o/smart-city/jwks/'
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir services/parking-analytics --host 127.0.0.1 --port 8084
 ```
 
 The services parent must be on `PYTHONPATH` for the existing `shared.registry_client` import.
-Open <http://127.0.0.1:8084/docs>; use **Authorize** with a Keycloak access token.
+Open <http://127.0.0.1:8084/docs>; use **Authorize** with a Authentik access token.
 Search/detail/status require identity; estimation also requires `parking:estimate`.
 Use [AUTHENTICATION.md](AUTHENTICATION.md) to obtain a token, then set
 `$headers = @{ Authorization = "Bearer $env:PARKING_ACCESS_TOKEN" }` in the caller terminal.
@@ -155,7 +155,7 @@ subjects in the bundled replay. An omitted `as_of` uses current UTC time; replay
 observations without it correctly produces unknown estimates.
 
 To submit the clearly simulated fixture, obtain `PARKING_ACCESS_TOKEN` in the client
-terminal using a Keycloak service account granted `parking:estimate`.
+terminal using a Authentik service account granted `parking:estimate`.
 Alternatively use Swagger's Authorize button:
 
 ```powershell
@@ -196,7 +196,7 @@ update the public occupancy cache or persist raw observations. Invalid JSON/stru
 `PARKING_INTERNAL_CLIENTS` opaque credentials are replaced by the shared trusted JWT
 verifier. Missing/invalid identity returns 401; a verified caller without the estimator
 permission returns 403. Unavailable required signing keys return retryable 503.
-See [AUTHENTICATION.md](AUTHENTICATION.md) for Keycloak, claim mapping and migration.
+See [AUTHENTICATION.md](AUTHENTICATION.md) for Authentik, claim mapping and migration.
 
 ## Tests, timing and Compose
 
@@ -227,7 +227,7 @@ source unavailable and verifies persisted fallback. It removes only its own cont
 and volumes. It does not start S1 or other domain services.
 
 For an interactive Compose demonstration, stop the standalone server on 8084, configure
-root `.env` and Keycloak as described in AUTHENTICATION.md, and retain your existing
+root `.env` and Authentik as described in AUTHENTICATION.md, and retain your existing
 registry/database secret values:
 
 ```powershell
@@ -255,3 +255,8 @@ key with `items`. Search now has pagination and independent per-field provenance
 of a global `is_live` flag. Public `as_of` is processing time; historical observation times
 are in `occupancy.observed_at`. The estimator is now restricted, as required by T008.
 Consumers should use the agreed contract rather than the pre-contract response examples.
+
+
+## Shared authentication
+
+See [Authentik setup and verification](../../docs/Authentik-Migration.md) before calling protected routes. Existing dated test reports are not verification of the migrated deployment.

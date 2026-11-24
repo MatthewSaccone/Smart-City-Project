@@ -59,6 +59,7 @@ def make_token(private_key, **overrides):
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(minutes=5)).timestamp()),
         "roles": ["user"],
+        "scope": "smart-city",
     }
 
     claims.update(overrides)
@@ -179,6 +180,7 @@ def test_unconfigured_verifier_fails_closed():
 def test_jwks_connection_failure_fails_closed(
     monkeypatch,
     settings,
+    rsa_keys,
 ):
     class UnavailableJWKClient:
         def __init__(self, url, **kwargs):
@@ -201,7 +203,7 @@ def test_jwks_connection_failure_fails_closed(
     assert verifier.check_available() is False
 
     with pytest.raises(auth.IdentityProviderUnavailable):
-        verifier.verify_token("some-token")
+        verifier.verify_token(make_token(rsa_keys[0]))
 
 
 def test_moderator_dependency_rejects_regular_user():
@@ -227,15 +229,15 @@ def test_moderator_dependency_accepts_moderator():
     assert auth.require_moderator(principal) is principal
 
 
-def test_keycloak_http_jwks_rejected_without_explicit_development_opt_in(
+def test_authentik_http_jwks_rejected_without_explicit_development_opt_in(
     monkeypatch,
 ):
     monkeypatch.setenv("APP_ENV", "development")
-    monkeypatch.setenv("JWT_ISSUER", "http://localhost:8088/realms/smart-city")
+    monkeypatch.setenv("JWT_ISSUER", "http://localhost:8088/application/o/smart-city/")
     monkeypatch.setenv("JWT_AUDIENCE", "smart-city-api")
     monkeypatch.setenv(
         "JWT_JWKS_URL",
-        "http://keycloak:8080/realms/smart-city/protocol/openid-connect/certs",
+        "http://authentik-server:9000/application/o/smart-city/jwks/",
     )
     monkeypatch.setenv("JWT_ALLOW_INSECURE_JWKS", "false")
 
@@ -243,33 +245,33 @@ def test_keycloak_http_jwks_rejected_without_explicit_development_opt_in(
         auth.JWTSettings.from_env()
 
 
-def test_keycloak_http_jwks_allowed_with_explicit_development_opt_in(
+def test_authentik_http_jwks_allowed_with_explicit_development_opt_in(
     monkeypatch,
 ):
     monkeypatch.setenv("APP_ENV", "development")
-    monkeypatch.setenv("JWT_ISSUER", "http://localhost:8088/realms/smart-city")
+    monkeypatch.setenv("JWT_ISSUER", "http://localhost:8088/application/o/smart-city/")
     monkeypatch.setenv("JWT_AUDIENCE", "smart-city-api")
     monkeypatch.setenv(
         "JWT_JWKS_URL",
-        "http://keycloak:8080/realms/smart-city/protocol/openid-connect/certs",
+        "http://authentik-server:9000/application/o/smart-city/jwks/",
     )
     monkeypatch.setenv("JWT_ALLOW_INSECURE_JWKS", "true")
 
     settings = auth.JWTSettings.from_env()
 
     assert settings.allow_insecure_jwks is True
-    assert settings.jwks_url.startswith("http://keycloak:8080/")
+    assert settings.jwks_url.startswith("http://authentik-server:9000/")
 
 
-def test_keycloak_http_jwks_rejected_outside_development_even_with_opt_in(
+def test_authentik_http_jwks_rejected_outside_development_even_with_opt_in(
     monkeypatch,
 ):
     monkeypatch.setenv("APP_ENV", "production")
-    monkeypatch.setenv("JWT_ISSUER", "http://localhost:8088/realms/smart-city")
+    monkeypatch.setenv("JWT_ISSUER", "http://localhost:8088/application/o/smart-city/")
     monkeypatch.setenv("JWT_AUDIENCE", "smart-city-api")
     monkeypatch.setenv(
         "JWT_JWKS_URL",
-        "http://keycloak:8080/realms/smart-city/protocol/openid-connect/certs",
+        "http://authentik-server:9000/application/o/smart-city/jwks/",
     )
     monkeypatch.setenv("JWT_ALLOW_INSECURE_JWKS", "true")
 
@@ -277,15 +279,15 @@ def test_keycloak_http_jwks_rejected_outside_development_even_with_opt_in(
         auth.JWTSettings.from_env()
 
 
-def test_keycloak_http_jwks_rejected_when_app_env_is_unset(
+def test_authentik_http_jwks_rejected_when_app_env_is_unset(
     monkeypatch,
 ):
     monkeypatch.delenv("APP_ENV", raising=False)
-    monkeypatch.setenv("JWT_ISSUER", "http://localhost:8088/realms/smart-city")
+    monkeypatch.setenv("JWT_ISSUER", "http://localhost:8088/application/o/smart-city/")
     monkeypatch.setenv("JWT_AUDIENCE", "smart-city-api")
     monkeypatch.setenv(
         "JWT_JWKS_URL",
-        "http://keycloak:8080/realms/smart-city/protocol/openid-connect/certs",
+        "http://authentik-server:9000/application/o/smart-city/jwks/",
     )
     monkeypatch.setenv("JWT_ALLOW_INSECURE_JWKS", "true")
 

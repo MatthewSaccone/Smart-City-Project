@@ -210,3 +210,8 @@ graceful deregistration and the existing registry regression suite.
 Unselected providers/licenses, raw GTFS parsing, operator-local timezone conversion,
 production catalog sizes, cloud latency and multi-replica storage are deployment
 dependencies. The implementation and local tests do not prove production scalability.
+
+
+## Shared authentication
+
+See [Authentik setup and verification](../../docs/Authentik-Migration.md) before calling protected routes. Existing dated test reports are not verification of the migrated deployment.

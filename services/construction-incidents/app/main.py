@@ -1,4 +1,5 @@
-﻿
+from shared.auth import configure_openapi, protect_service
+
 import logging
 import os
 
@@ -105,7 +106,7 @@ async def lifespan(app: FastAPI):
             await registry_client.stop()
 
 
-app = FastAPI(
+app = FastAPI(dependencies=[protect_service("s3")],
     title="Construction and Incident Reporting",
     version="1.0.0",
     lifespan=lifespan,
@@ -305,3 +306,6 @@ def root():
         "service": SERVICE_ID,
         "message": "Construction and Incident Reporting service is running",
     }
+
+
+configure_openapi(app)

@@ -4,7 +4,7 @@ import argparse
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from importlib.metadata import version
+from importlib.metadata import version, PackageNotFoundError
 import json
 import logging
 import math
@@ -25,6 +25,9 @@ import yaml
 
 SERVICE = Path(__file__).resolve().parents[1]
 ROOT = SERVICE.parents[1]
+sys.path.insert(0, str(SERVICE.parent))
+from shared.testing_identity import EphemeralIdentity
+from shared.service_tokens import ServiceTokenClient
 AREA = {"latitude": 43.0096, "longitude": -81.2737, "radius_m": 1500}
 ARRIVALS = "/v1/transit/stops/stop-102/arrivals"
 CASES = [(ARRIVALS, {}, "ArrivalsResponse"),
@@ -34,25 +37,34 @@ CASES = [(ARRIVALS, {}, "ArrivalsResponse"),
     ("/v1/transit/occupancy", {"route_id": "route-5"}, "OccupancyResponse")]
 
 
+def package_version(name):
+    try:
+        return version(name)
+    except PackageNotFoundError:
+        return "not installed"
+
+
 def summarize(samples):
     values = sorted(samples)
     return {"average_ms": round(statistics.mean(values), 3), "p50_ms": round(statistics.median(values), 3),
             "p95_ms": round(values[math.ceil(.95*len(values))-1], 3), "max_ms": round(max(values), 3)} if values else None
 
 
-async def measure(base_url, *, rounds=3):
+async def measure(base_url, *, rounds=3, token=None):
     if urlsplit(base_url).hostname not in {"localhost", "127.0.0.1", "::1"}:
         raise ValueError("Load testing is restricted to an operator-owned loopback test instance")
+    if token is None:
+        token = await asyncio.to_thread(ServiceTokenClient.from_env().get_token)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     contract = yaml.safe_load((ROOT / "shared/api-contracts/s6-public-transit.openapi.yaml").read_text(encoding="utf-8"))
     report = {"measured_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "environment": {"client_python": platform.python_version(), "client_os": platform.platform(), "logical_cpus": os.cpu_count(),
-            "client_packages": {name: version(name) for name in ("httpx", "httpcore", "anyio", "sniffio")}},
+            "client_packages": {name: package_version(name) for name in ("httpx", "httpcore", "anyio", "sniffio")}},
         "conditions": {"concurrency": 50, "rounds": rounds, "baseline_requests": 20, "http_timeout_seconds": 5,
             "workers": 1, "dataset": "169 simulated daily trips, 4 stops, 3 routes, historical simulated updates",
             "external_apis_used": False, "warmup_requests": 6, "persistent_connections": True},
         "production_scalability_verified": False}
-    async with httpx.AsyncClient(base_url=base_url, timeout=5, trust_env=False,
+    async with httpx.AsyncClient(base_url=base_url, timeout=5, trust_env=False, headers={"Authorization": "Bearer " + token},
             limits=httpx.Limits(max_connections=50, max_keepalive_connections=50)) as client:
         for path, params, schema in CASES:
             response = await client.get(path, params=params)
@@ -129,11 +141,18 @@ async def measure(base_url, *, rounds=3):
 
 @asynccontextmanager
 async def local_server():
+    with EphemeralIdentity() as identity:
+        async with local_server_with_identity(identity) as url:
+            yield url, identity.token(roles=["service"], permissions=["s6:read"])
+
+
+@asynccontextmanager
+async def local_server_with_identity(identity):
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
         port = listener.getsockname()[1]
     env = {key: value for key, value in os.environ.items() if not key.startswith("TRANSIT_")}
-    env.update({"PYTHONPATH": os.pathsep.join((str(SERVICE), str(SERVICE.parent))), "REGISTRY_URL": ""})
+    env.update({"PYTHONPATH": os.pathsep.join((str(SERVICE), str(SERVICE.parent))), "REGISTRY_URL": "", **identity.environment()})
     with tempfile.TemporaryDirectory(prefix="scms-s6-http-") as folder:
         env["TRANSIT_DATABASE_PATH"] = str(Path(folder) / "transit.sqlite")
         log_path = Path(folder) / "server.log"
@@ -170,8 +189,8 @@ async def local_server():
 
 async def main(args):
     if args.spawn_local:
-        async with local_server() as url:
-            report = await measure(url, rounds=args.rounds)
+        async with local_server() as (url, token):
+            report = await measure(url, rounds=args.rounds, token=token)
     else:
         report = await measure(args.base_url, rounds=args.rounds)
     encoded = json.dumps(report, indent=2)

@@ -287,3 +287,8 @@ The implementation provides the core S3 reporting and persistence functionality.
 - Verification of S3 QR1 and QR5 latency targets under representative load.
 - Verification of QR4 persistence through a service restart.
 - Integration and acceptance testing through the deployed gateway and frontend.
+
+
+## Shared authentication
+
+See [Authentik setup and verification](../../docs/Authentik-Migration.md) before calling protected routes. Existing dated test reports are not verification of the migrated deployment.

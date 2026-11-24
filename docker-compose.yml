@@ -2,57 +2,63 @@
 name: smart-city-microservices
 
 services:
-  # Dedicated PostgreSQL database for Keycloak
-  keycloak-postgres:
+  authentik-postgres:
     image: postgres:16-alpine
     restart: unless-stopped
-
     environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?Set KEYCLOAK_DB_PASSWORD in .env}
-
+      POSTGRES_DB: authentik
+      POSTGRES_USER: authentik
+      POSTGRES_PASSWORD: ${AUTHENTIK_DB_PASSWORD:?Set AUTHENTIK_DB_PASSWORD}
     volumes:
-      - keycloak-postgres-data:/var/lib/postgresql/data
-
+      - authentik-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test:
-        - CMD-SHELL
-        - pg_isready -U keycloak -d keycloak
+      test: [CMD-SHELL, pg_isready -U authentik -d authentik]
       interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 5s
-
-  # Shared identity provider for all seven microservices
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.4.7
-    command:
-      - start-dev
-      - --http-port=8080
-
+      timeout: 5s
+      retries: 20
+  authentik-server:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2026.8.6}
+    command: server
+    shm_size: 512mb
     restart: unless-stopped
-
-    environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set KEYCLOAK_ADMIN_PASSWORD in .env}
-
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://keycloak-postgres:5432/keycloak
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?Set KEYCLOAK_DB_PASSWORD in .env}
-
-      KC_HEALTH_ENABLED: "true"
-      KC_HTTP_ENABLED: "true"
-      KC_HOSTNAME: http://localhost:8088
-      KC_HOSTNAME_STRICT: "false"
-
-    depends_on:
-      keycloak-postgres:
-        condition: service_healthy
-
+    environment: &authentik-env
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?Set AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD:?Set AUTHENTIK_DB_PASSWORD}
+    volumes:
+      - authentik-data:/data
     ports:
-      - "127.0.0.1:8088:8080"
+      - "127.0.0.1:8088:9000"
+    depends_on:
+      authentik-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, ak, healthcheck]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2026.8.6}
+    command: worker
+    shm_size: 512mb
+    user: root
+    restart: unless-stopped
+    environment: *authentik-env
+    volumes:
+      - authentik-data:/data
+      - authentik-certs:/certs
+    depends_on:
+      authentik-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, ak, healthcheck]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -216,21 +222,26 @@ services:
       REGISTRY_ADVERTISED_ENDPOINT: http://live-traffic:8080
       S1_DATABASE_URL: postgresql://traffic_user:${TRAFFIC_POSTGRES_PASSWORD:?Set TRAFFIC_POSTGRES_PASSWORD in .env}@live-traffic-postgres:5432/smart_city_traffic
 
+      JWT_ISSUER: ${JWT_ISSUER:?Set JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:?Set JWT_AUDIENCE}
+      JWT_JWKS_URL: ${JWT_JWKS_URL:?Set JWT_JWKS_URL}
       JWT_ALLOW_INSECURE_JWKS: ${JWT_ALLOW_INSECURE_JWKS:-false}
-      JWT_ISSUER: ${JWT_ISSUER:-}
-      JWT_AUDIENCE: ${JWT_AUDIENCE:-}
-      JWT_JWKS_URL: ${JWT_JWKS_URL:-}
-      JWT_ROLE_CLAIM: ${JWT_ROLE_CLAIM:-roles}
-      JWT_MODERATOR_ROLE: ${JWT_MODERATOR_ROLE:-moderator}
-      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-30}
+      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-0}
       JWT_JWKS_TIMEOUT_SECONDS: ${JWT_JWKS_TIMEOUT_SECONDS:-5}
     depends_on:
+      authentik-server:
+        condition: service_healthy
       service-registry:
         condition: service_healthy
       live-traffic-postgres:
         condition: service_healthy
     ports:
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
 
   # Traffic prediction
   traffic-predictor:
@@ -243,18 +254,24 @@ services:
       REGISTRY_URL: http://service-registry:8080
       REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
       REGISTRY_ADVERTISED_ENDPOINT: http://traffic-predictor:8080
+      JWT_ISSUER: ${JWT_ISSUER:?Set JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:?Set JWT_AUDIENCE}
+      JWT_JWKS_URL: ${JWT_JWKS_URL:?Set JWT_JWKS_URL}
       JWT_ALLOW_INSECURE_JWKS: ${JWT_ALLOW_INSECURE_JWKS:-false}
-      JWT_ISSUER: ${JWT_ISSUER:-}
-      JWT_AUDIENCE: ${JWT_AUDIENCE:-}
-      JWT_JWKS_URL: ${JWT_JWKS_URL:-}
-      JWT_ROLE_CLAIM: ${JWT_ROLE_CLAIM:-roles}
-      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-30}
+      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-0}
       JWT_JWKS_TIMEOUT_SECONDS: ${JWT_JWKS_TIMEOUT_SECONDS:-5}
     depends_on:
+      authentik-server:
+        condition: service_healthy
       service-registry:
         condition: service_healthy
     ports:
-      - "8082:8080"
+      - "127.0.0.1:8082:8080"
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
 
   # Construction and incident reporting
   construction-incidents:
@@ -270,22 +287,27 @@ services:
 
       INCIDENTS_DATABASE_URL: postgresql://incidents_user:${INCIDENTS_POSTGRES_PASSWORD:?Set INCIDENTS_POSTGRES_PASSWORD in .env}@incidents-postgres:5432/smart_city_incidents
 
-      JWT_ALLOW_INSECURE_JWKS: ${JWT_ALLOW_INSECURE_JWKS:-false}
-      JWT_ISSUER: ${JWT_ISSUER:-}
-      JWT_AUDIENCE: ${JWT_AUDIENCE:-}
-      JWT_JWKS_URL: ${JWT_JWKS_URL:-}
-      JWT_ROLE_CLAIM: ${JWT_ROLE_CLAIM:-roles}
-      JWT_MODERATOR_ROLE: ${JWT_MODERATOR_ROLE:-moderator}
-      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-30}
-      JWT_JWKS_TIMEOUT_SECONDS: ${JWT_JWKS_TIMEOUT_SECONDS:-5}
 
+      JWT_ISSUER: ${JWT_ISSUER:?Set JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:?Set JWT_AUDIENCE}
+      JWT_JWKS_URL: ${JWT_JWKS_URL:?Set JWT_JWKS_URL}
+      JWT_ALLOW_INSECURE_JWKS: ${JWT_ALLOW_INSECURE_JWKS:-false}
+      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-0}
+      JWT_JWKS_TIMEOUT_SECONDS: ${JWT_JWKS_TIMEOUT_SECONDS:-5}
     depends_on:
+      authentik-server:
+        condition: service_healthy
       service-registry:
         condition: service_healthy
       incidents-postgres:
         condition: service_healthy
     ports:
-      - "8083:8080"
+      - "127.0.0.1:8083:8080"
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
 
 
   # Parking analytics
@@ -299,18 +321,24 @@ services:
       REGISTRY_URL: http://service-registry:8080
       REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
       REGISTRY_ADVERTISED_ENDPOINT: http://parking-analytics:8080
+      JWT_ISSUER: ${JWT_ISSUER:?Set JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:?Set JWT_AUDIENCE}
+      JWT_JWKS_URL: ${JWT_JWKS_URL:?Set JWT_JWKS_URL}
       JWT_ALLOW_INSECURE_JWKS: ${JWT_ALLOW_INSECURE_JWKS:-false}
-      JWT_ISSUER: ${JWT_ISSUER:-}
-      JWT_AUDIENCE: ${JWT_AUDIENCE:-}
-      JWT_JWKS_URL: ${JWT_JWKS_URL:-}
-      JWT_ROLE_CLAIM: ${JWT_ROLE_CLAIM:-roles}
-      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-30}
+      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-0}
       JWT_JWKS_TIMEOUT_SECONDS: ${JWT_JWKS_TIMEOUT_SECONDS:-5}
     depends_on:
+      authentik-server:
+        condition: service_healthy
       service-registry:
         condition: service_healthy
     ports:
-      - "8084:8080"
+      - "127.0.0.1:8084:8080"
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
 
   # Weather and air quality analytics
   weather-analytics:
@@ -319,15 +347,28 @@ services:
       dockerfile: weather-analytics/Dockerfile
     restart: unless-stopped
     environment:
-      APP_ENV: development
+      APP_ENV: ${APP_ENV:-production}
       REGISTRY_URL: http://service-registry:8080
       REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
       REGISTRY_ADVERTISED_ENDPOINT: http://weather-analytics:8080
+      JWT_ISSUER: ${JWT_ISSUER:?Set JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:?Set JWT_AUDIENCE}
+      JWT_JWKS_URL: ${JWT_JWKS_URL:?Set JWT_JWKS_URL}
+      JWT_ALLOW_INSECURE_JWKS: ${JWT_ALLOW_INSECURE_JWKS:-false}
+      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-0}
+      JWT_JWKS_TIMEOUT_SECONDS: ${JWT_JWKS_TIMEOUT_SECONDS:-5}
     depends_on:
+      authentik-server:
+        condition: service_healthy
       service-registry:
         condition: service_healthy
     ports:
-      - "8085:8080"
+      - "127.0.0.1:8085:8080"
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
 
   # Public transit analytics
   transit-analytics:
@@ -336,15 +377,28 @@ services:
       dockerfile: transit-analytics/Dockerfile
     restart: unless-stopped
     environment:
-      APP_ENV: development
+      APP_ENV: ${APP_ENV:-production}
       REGISTRY_URL: http://service-registry:8080
       REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
       REGISTRY_ADVERTISED_ENDPOINT: http://transit-analytics:8080
+      JWT_ISSUER: ${JWT_ISSUER:?Set JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:?Set JWT_AUDIENCE}
+      JWT_JWKS_URL: ${JWT_JWKS_URL:?Set JWT_JWKS_URL}
+      JWT_ALLOW_INSECURE_JWKS: ${JWT_ALLOW_INSECURE_JWKS:-false}
+      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-0}
+      JWT_JWKS_TIMEOUT_SECONDS: ${JWT_JWKS_TIMEOUT_SECONDS:-5}
     depends_on:
+      authentik-server:
+        condition: service_healthy
       service-registry:
         condition: service_healthy
     ports:
-      - "8086:8080"
+      - "127.0.0.1:8086:8080"
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
 
   # Gasoline price analytics
   gasoline-analytics:
@@ -353,19 +407,50 @@ services:
       dockerfile: gasoline-analytics/Dockerfile
     restart: unless-stopped
     environment:
-      APP_ENV: development
+      APP_ENV: ${APP_ENV:-production}
       REGISTRY_URL: http://service-registry:8080
       REGISTRY_API_KEY: ${REGISTRY_API_KEY:?Set REGISTRY_API_KEY in .env}
       REGISTRY_ADVERTISED_ENDPOINT: http://gasoline-analytics:8080
+      JWT_ISSUER: ${JWT_ISSUER:?Set JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:?Set JWT_AUDIENCE}
+      JWT_JWKS_URL: ${JWT_JWKS_URL:?Set JWT_JWKS_URL}
+      JWT_ALLOW_INSECURE_JWKS: ${JWT_ALLOW_INSECURE_JWKS:-false}
+      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-0}
+      JWT_JWKS_TIMEOUT_SECONDS: ${JWT_JWKS_TIMEOUT_SECONDS:-5}
     depends_on:
+      authentik-server:
+        condition: service_healthy
       service-registry:
         condition: service_healthy
     ports:
-      - "8087:8080"
+      - "127.0.0.1:8087:8080"
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+
+  # Unified Swagger documentation for all seven microservices
+  api-docs:
+    build:
+      context: ./api-docs
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      AUTHENTIK_PUBLIC_URL: ${AUTHENTIK_PUBLIC_URL:-http://localhost:8088}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:?Set JWT_AUDIENCE}
+    depends_on:
+      authentik-server:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8091:8080"
 
 volumes:
   registry-data:
   postgres-data:
   live-traffic-postgres-data:
   incidents-postgres-data:
-  keycloak-postgres-data:
+  authentik-postgres-data:
+  authentik-data:
+  authentik-certs:

@@ -19,7 +19,8 @@ paths:
       summary: Estimate live congestion and delay on a route between two locations
       description: Calculates congestion without creating a resource. A routing dependency selects the fastest or shortest
         route between the points. Uses input observations received within the previous 60 seconds for fresh calculations.
-      security: []
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       requestBody:
@@ -87,6 +88,10 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /v1/traffic/areas/congestion:
     get:
       tags:
@@ -95,7 +100,8 @@ paths:
       summary: List congestion readings within a radius of a location
       description: Filters by geographic radius, sorts with segment_id as a tie-breaker, then paginates. Returns 200 with
         empty items when no segments match.
-      security: []
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - name: latitude
@@ -197,6 +203,10 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /health:
     get:
       tags:
@@ -240,6 +250,12 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Authentik access token with smart-city scope and signed roles and permissions.
   parameters:
     RequestId:
       name: X-Request-ID

@@ -27,6 +27,10 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 import httpx
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from shared.service_tokens import ServiceTokenClient, MachineAuth
 
 
 METRES_PER_DEGREE_LAT = 111194.93
@@ -357,7 +361,7 @@ def main():
 
     started_at = datetime.now(timezone.utc)
     run_id = started_at.strftime("%H%M%S")
-    client = httpx.Client(base_url=args.url, timeout=10,
+    client = httpx.Client(base_url=args.url, timeout=10, auth=MachineAuth(ServiceTokenClient.from_env()),
                           limits=httpx.Limits(max_connections=args.concurrency + 10))
 
     try:

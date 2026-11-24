@@ -2,10 +2,10 @@ openapi: 3.1.0
 info:
   title: Smart City — S5 Weather & Air Quality API
   version: 1.0.0
-  description: T008 prescriptive interface contract for S5 (weather-analytics), grounded in PR1 S5 FR1-FR5 and QR1-QR3.
-    PR1 target is <=2000 ms. Weather outage returns last known data clearly marked stale. Freshness cutoffs 30 min weather,
-    60 min AQ, 6 h forecast are adopted S5 design choices, not PR1 numeric targets. Provider selections remain unconfirmed.
-    All outputs use UTC RFC3339 Z. Follows docs/api/API-Standards.md.
+  description: T008 prescriptive interface contract for S5 (weather-analytics), grounded in PR1 S5 FR1-FR5 and QR1-QR3. PR1
+    target is <=2000 ms. Weather outage returns last known data clearly marked stale. Freshness cutoffs 30 min weather, 60
+    min AQ, 6 h forecast are adopted S5 design choices, not PR1 numeric targets. Provider selections remain unconfirmed. All
+    outputs use UTC RFC3339 Z. Follows docs/api/API-Standards.md.
 tags:
 - name: Weather
   description: Current weather and weather forecast reads
@@ -30,7 +30,8 @@ paths:
       - S5 QR1
       - S5 QR2
       - S5 QR3
-      security: []
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/Latitude'
@@ -86,6 +87,10 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /v1/weather/forecast:
     get:
       tags:
@@ -100,7 +105,8 @@ paths:
       - S5 QR1
       - S5 QR2
       - S5 QR3
-      security: []
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/Latitude'
@@ -164,6 +170,10 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /v1/environment/air-quality:
     get:
       tags:
@@ -176,7 +186,8 @@ paths:
       - S5 FR3
       - S5 QR1
       - S5 QR2
-      security: []
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/Latitude'
@@ -232,6 +243,10 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /v1/environment/trends:
     get:
       tags:
@@ -243,7 +258,8 @@ paths:
         then period_end by default, before offset pagination.'
       x-pr1-requirements:
       - S5 FR3
-      security: []
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/Latitude'
@@ -312,22 +328,27 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /v1/weather/travel-guidance:
     get:
       tags:
       - Guidance
       operationId: getWeatherTravelGuidance
       summary: Get derived weather-related travel risk and precautions
-      description: S5 FR4/FR5, QR1-QR3. Current or future travel instant up to 7 days. Derived from weather/forecast/AQ
-        measurements, not an official alert. Return risk unknown and assessment insufficient_data when essential inputs
-        absent or too stale; the rule-set thresholds require a separately approved specification.
+      description: S5 FR4/FR5, QR1-QR3. Current or future travel instant up to 7 days. Derived from weather/forecast/AQ measurements,
+        not an official alert. Return risk unknown and assessment insufficient_data when essential inputs absent or too stale;
+        the rule-set thresholds require a separately approved specification.
       x-pr1-requirements:
       - S5 FR4
       - S5 FR5
       - S5 QR1
       - S5 QR2
       - S5 QR3
-      security: []
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/Latitude'
@@ -379,6 +400,10 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /health:
     get:
       tags:
@@ -411,8 +436,8 @@ paths:
       - Operations
       operationId: getReadiness
       summary: Essential weather query/cached-fallback capability
-      description: Ready when usable weather or a candid cached weather fallback can be returned; provider outage alone
-        need not fail readiness. Missing AQ alone does not fail full-service readiness.
+      description: Ready when usable weather or a candid cached weather fallback can be returned; provider outage alone need
+        not fail readiness. Missing AQ alone does not fail full-service readiness.
       security: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
@@ -435,6 +460,12 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Authentik access token with smart-city scope and signed roles and permissions.
   parameters:
     RequestId:
       name: X-Request-ID
@@ -1000,8 +1031,8 @@ components:
       - pollutant
       - concentration
       - unit
-      description: Unit MUST be ug_m3 for PM2.5/PM10, ppb for ozone/NO2/SO2, or ppm for CO; the service must convert raw
-        provider units.
+      description: Unit MUST be ug_m3 for PM2.5/PM10, ppb for ozone/NO2/SO2, or ppm for CO; the service must convert raw provider
+        units.
     AirQualityResponse:
       type: object
       additionalProperties: false
@@ -1193,8 +1224,8 @@ components:
       - recommendations
       - rule_set_version
       - inputs
-      description: Risk is informational weather-related difficulty, not a declaration that travel is safe. If essential
-        evidence insufficient, status insufficient_data and risk unknown.
+      description: Risk is informational weather-related difficulty, not a declaration that travel is safe. If essential evidence
+        insufficient, status insufficient_data and risk unknown.
     ErrorDetail:
       type: object
       additionalProperties: false

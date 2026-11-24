@@ -2,7 +2,7 @@
 
 S2 is a FastAPI service backed by its **own PostgreSQL database**. It imports the City of Toronto *Midblock Traffic Speed* dataset and offers historical traffic analysis and experimental statistical predictions.
 
-All four analytics endpoints now require a Keycloak JWT, matching S3's issuer/audience
+All four analytics endpoints now require a Authentik JWT, matching S3's issuer/audience
 verification. Follow [AUTHENTICATION.md](AUTHENTICATION.md) for server configuration,
 service-account tokens, Swagger authorization and integration tests. Existing data/model
 approval requirements below still apply. Operational probes remain accessible.
@@ -68,9 +68,9 @@ $env:PYTHONPATH = (Resolve-Path ..).Path
 $env:S2_MODEL_VERSION = 'toronto-p75-candidate-v1'
 $env:APP_ENV = 'development'
 $env:S2_EXPERIMENTAL_PREVIEW = '1'  # local testing ONLY
-$env:JWT_ISSUER = 'http://localhost:8088/realms/smart-city'
+$env:JWT_ISSUER = 'http://localhost:8088/application/o/smart-city/'
 $env:JWT_AUDIENCE = 'smart-city-api'
-$env:JWT_JWKS_URL = 'http://localhost:8088/realms/smart-city/protocol/openid-connect/certs'
+$env:JWT_JWKS_URL = 'http://localhost:8088/application/o/smart-city/jwks/'
 Remove-Item Env:S2_HISTORY_CSV -ErrorAction SilentlyContinue
 Remove-Item Env:S2_HISTORY_METADATA -ErrorAction SilentlyContinue
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8082

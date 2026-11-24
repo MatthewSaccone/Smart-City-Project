@@ -1,0 +1,22 @@
+# Paste into an Authentik OAuth2 Scope Mapping named Smart City API.
+# Scope name: smart-city. Group membership is controlled by administrators.
+groups = {group.name for group in request.user.all_groups()}
+roles = []
+permissions = []
+if "sc-services" in groups:
+    if not groups.intersection({"sc-users", "sc-admins", "sc-moderators"}):
+        roles.append("service")
+        for number in range(1, 8):
+            for action in ("read", "write"):
+                if f"sc-s{number}-{action}" in groups:
+                    permissions.append(f"s{number}:{action}")
+        if "sc-parking-estimate" in groups:
+            permissions.append("parking:estimate")
+else:
+    if "sc-users" in groups:
+        roles.append("user")
+    if "sc-admins" in groups:
+        roles.append("administrator")
+    if "sc-moderators" in groups:
+        roles.append("moderator")
+return {"roles": roles, "permissions": permissions}

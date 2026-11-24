@@ -10,8 +10,8 @@ def test_fifty_concurrent_arrivals_and_mixed_requests_over_real_http():
     benchmark = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(benchmark)
     async def run():
-        async with benchmark.local_server() as url:
-            return await benchmark.measure(url, rounds=1)
+        async with benchmark.local_server() as (url, token):
+            return await benchmark.measure(url, rounds=1, token=token)
     report = asyncio.run(run())
     assert report["t055_local_pass"] and report["t061_local_pass"], json.dumps(report, indent=2)
     for name in ("concurrent_arrivals", "concurrent_mixed"):

@@ -17,6 +17,10 @@ import argparse
 import time
 
 import httpx
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from shared.service_tokens import ServiceTokenClient, MachineAuth
 
 from app.analytics import distance_m
 
@@ -94,6 +98,7 @@ def main():
     parser.add_argument("--seconds", type=int, default=120, help="how long to run")
     args = parser.parse_args()
 
+    tokens = ServiceTokenClient.from_env()
     cars = make_cars(args.scenario)
     rounds = args.seconds // PING_EVERY_SECONDS
 
@@ -105,6 +110,7 @@ def main():
             try:
                 response = httpx.post(
                     args.url + "/v1/traffic/locations",
+                    headers=tokens.headers(),
                     json={
                         "user_id": car["user_id"],
                         "latitude": latitude,

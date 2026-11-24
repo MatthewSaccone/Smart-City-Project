@@ -101,3 +101,8 @@ exercised with recorded-shape responses.
 
 **Not yet verified:** live calls to Open-Meteo (the dev sandbox had no outbound access to it) and a
 Docker Compose run. Run both once before demo or cloud deployment (T090/T108).
+
+
+## Shared authentication
+
+See [Authentik setup and verification](../../docs/Authentik-Migration.md) before calling protected routes. Existing dated test reports are not verification of the migrated deployment.

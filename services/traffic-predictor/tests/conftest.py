@@ -13,7 +13,7 @@ import pytest
 from app import main
 
 
-ISSUER = "https://identity.example.test/realms/smart-city"
+ISSUER = "https://identity.example.test/application/o/smart-city/"
 AUDIENCE = "smart-city-api"
 
 
@@ -40,7 +40,7 @@ def make_token(signing_keys):
         now = datetime.now(timezone.utc)
         claims = {"iss": ISSUER, "aud": AUDIENCE, "sub": "service-account-test-client",
                   "iat": int(now.timestamp()), "exp": int((now + timedelta(minutes=5)).timestamp()),
-                  "roles": ["user"]}
+                  "roles": ["user"], "scope": "smart-city"}
         claims.update(overrides)
         for name in omit:
             claims.pop(name, None)

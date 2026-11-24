@@ -139,10 +139,10 @@ def test_generated_operation_ids_and_service_security(client):
     schema = client.get("/openapi.json").json()
     assert schema["paths"]["/v1/parking/facilities"]["get"]["operationId"] == "searchParkingFacilities"
     assert schema["paths"]["/v1/parking/facilities/{facility_id}"]["get"]["operationId"] == "getParkingFacility"
-    assert schema["paths"]["/v1/parking/occupancy/estimate"]["post"]["security"] == [{"ServiceBearer": []}]
+    assert schema["paths"]["/v1/parking/occupancy/estimate"]["post"]["security"] == [{"BearerAuth": []}]
     for path in ("/v1/parking/facilities", "/v1/parking/facilities/{facility_id}", "/v1/parking/ingestion/status"):
-        assert schema["paths"][path]["get"]["security"] == [{"ServiceBearer": []}]
-        assert CONTRACT["paths"][path]["get"]["security"] == [{"ServiceBearer": []}]
+        assert schema["paths"][path]["get"]["security"] == [{"BearerAuth": []}]
+        assert CONTRACT["paths"][path]["get"]["security"] == [{"BearerAuth": []}]
 
 
 def test_incompatible_body_and_noncontract_timestamp_types(client):

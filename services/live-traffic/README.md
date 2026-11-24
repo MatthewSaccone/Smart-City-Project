@@ -31,8 +31,8 @@ Partly covered, S1 side only: T095 (`load_test.py` measures 20 and 200 requests 
 - **Local broker:** the broker remains in-process and delivers events synchronously within the receiving instance. PostgreSQL provides shared location storage; it is not a distributed message broker.
 - **Single feed poller:** when `TRAFFIC_SOURCE_URL` is configured, replicas coordinate through a PostgreSQL advisory lock so only one replica polls the external source at a time. Other replicas remain on standby. If the lock-holding replica stops or loses its database connection, another replica can acquire the lock.
 - **Ingestion design:** the 5-second polling interval, event fields and in-process broker are implementation defaults. Check them against the T010 design if it becomes available.
-- **Authentication:** protected endpoints require a valid Keycloak RS256 JWT. `/health`, `/ready` and the root endpoint remain public. User IDs are scoped to the authenticated subject; do not submit real people's location history.
-- **Standalone operation:** the local development command below does not configure PostgreSQL or Keycloak automatically. For the complete authenticated, persistent deployment, use the root Docker Compose configuration.
+- **Authentication:** protected endpoints require a valid Authentik RS256 JWT. `/health`, `/ready` and the root endpoint remain public. User IDs are scoped to the authenticated subject; do not submit real people's location history.
+- **Standalone operation:** the local development command below does not configure PostgreSQL or Authentik automatically. For the complete authenticated, persistent deployment, use the root Docker Compose configuration.
 
 ## Run locally
 
@@ -58,7 +58,7 @@ export REGISTRY_URL=""
 .venv/bin/python -m uvicorn app.main:app --app-dir services/live-traffic --host 127.0.0.1 --port 8081
 ```
 
-**Note:** this standalone command is intended for local development without registry integration. The complete Docker Compose deployment supplies the PostgreSQL database, Keycloak JWT configuration and registry connection. `/ready` checks JWT configuration, JWKS availability and database availability; it will not report ready if required infrastructure is unavailable.
+**Note:** this standalone command is intended for local development without registry integration. The complete Docker Compose deployment supplies the PostgreSQL database, Authentik JWT configuration and registry connection. `/ready` checks JWT configuration, JWKS availability and database availability; it will not report ready if required infrastructure is unavailable.
 
 Open [http://127.0.0.1:8081/docs](http://127.0.0.1:8081/docs) to see and try every endpoint.
 
@@ -77,9 +77,9 @@ The Compose configuration supplies:
 
 - `S1_DATABASE_URL`: connection string for the dedicated S1 PostgreSQL database.
 - `TRAFFIC_POSTGRES_PASSWORD`: database password configured in the root `.env` file.
-- `JWT_ISSUER`: expected Keycloak token issuer.
+- `JWT_ISSUER`: expected Authentik token issuer.
 - `JWT_AUDIENCE`: expected token audience.
-- `JWT_JWKS_URL`: Keycloak JSON Web Key Set endpoint.
+- `JWT_JWKS_URL`: Authentik JSON Web Key Set endpoint.
 - `JWT_ROLE_CLAIM`: JWT claim containing the user's roles.
 - `JWT_MODERATOR_ROLE`: moderator role name.
 - `APP_ENV` and `JWT_ALLOW_INSECURE_JWKS`: environment-specific security settings.
@@ -103,7 +103,7 @@ Invoke-RestMethod 'http://127.0.0.1:8081/v1/traffic/congestion/route?start_latit
 Invoke-RestMethod 'http://127.0.0.1:8081/v1/traffic/congestion/area?latitude=42.9880&longitude=-81.2515&radius_m=500' | ConvertTo-Json -Depth 5
 ```
 
-For the authenticated Compose deployment, include a valid Keycloak bearer token in requests to protected endpoints. Do not paste tokens into shared logs or documentation.
+For the authenticated Compose deployment, include a valid Authentik bearer token in requests to protected endpoints. Do not paste tokens into shared logs or documentation.
 
 Expected: segments 1 and 2 are `severe`, segments 3 and 4 are `low`, and the route has a delay of roughly six minutes. Stop the simulator, start it again with `--scenario clear`, and ask again: every segment becomes `low` and the delay drops to about ten seconds (T019).
 
@@ -166,7 +166,7 @@ Each published event has `event_type`, `user_id`, `latitude`, `longitude`, `time
 
 Coordinates are WGS84 decimal degrees. Distances are metres. Speeds are km/h. Times are UTC in ISO 8601 format. Invalid input returns FastAPI's standard 422 response.
 
-All endpoints except `/`, `/health` and `/ready` require a valid Keycloak RS256 bearer token.
+All endpoints except `/`, `/health` and `/ready` require a valid Authentik RS256 bearer token.
 
 ### POST /v1/traffic/locations
 
@@ -280,7 +280,7 @@ It prints achieved requests per second, errors and p50/p95/p99 response times fo
 
 ## Container
 
-The root Docker Compose configuration defines the S1 service, its dedicated PostgreSQL database, persistent database volume, registry dependency and Keycloak configuration.
+The root Docker Compose configuration defines the S1 service, its dedicated PostgreSQL database, persistent database volume, registry dependency and Authentik configuration.
 
 Build the image:
 
@@ -304,4 +304,9 @@ docker compose ps live-traffic
 Invoke-RestMethod 'http://127.0.0.1:8081/ready'
 ```
 
-The standalone `docker run` example is intentionally omitted: the production-style S1 container expects the shared PostgreSQL database and Keycloak configuration supplied by Compose.
+The standalone `docker run` example is intentionally omitted: the production-style S1 container expects the shared PostgreSQL database and Authentik configuration supplied by Compose.
+
+
+## Shared authentication
+
+See [Authentik setup and verification](../../docs/Authentik-Migration.md) before calling protected routes. Existing dated test reports are not verification of the migrated deployment.

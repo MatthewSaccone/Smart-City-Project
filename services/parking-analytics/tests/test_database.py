@@ -52,9 +52,9 @@ def test_empty_database_url_cannot_connect_using_implicit_driver_defaults(databa
         Database(database_url)
 
 
-def test_startup_initializes_empty_database_without_seeding_or_claiming_readiness(database, monkeypatch):
+def test_startup_initializes_empty_database_without_seeding_or_claiming_readiness(database, monkeypatch, identity):
     monkeypatch.setattr(ParkingIngestion, "start", lambda self: None)
-    with TestClient(main.app) as client:
+    with TestClient(main.app, headers={"Authorization": "Bearer " + identity.token()}) as client:
         assert database.initialized and database.attempts == 1
         assert client.app.state.database is client.app.state.ingestion.database
         assert client.get("/health").status_code == 200
@@ -63,17 +63,17 @@ def test_startup_initializes_empty_database_without_seeding_or_claiming_readines
         assert client.app.state.parking.facilities == []
 
 
-def test_fixture_startup_does_not_require_a_database(database, monkeypatch):
+def test_fixture_startup_does_not_require_a_database(database, monkeypatch, identity):
     monkeypatch.delenv("PARKING_DATABASE_URL")
     monkeypatch.setattr(ParkingIngestion, "start", lambda self: None)
-    with TestClient(main.app) as client:
+    with TestClient(main.app, headers={"Authorization": "Bearer " + identity.token()}) as client:
         assert client.app.state.database is None
         assert client.get("/ready").status_code == 200
         assert database.attempts == 0
 
 
 @pytest.mark.parametrize("failure", ["connect", "initialize"])
-def test_startup_failure_preserves_cached_data_and_recovers(database, failure, monkeypatch, tmp_path, caplog):
+def test_startup_failure_preserves_cached_data_and_recovers(database, failure, monkeypatch, tmp_path, caplog, identity):
     received_at = datetime.now(timezone.utc)
     database.records = {name: StoredFeed(payload=feed.model_dump(mode="json"), received_at=received_at)
                         for name, feed in publisher.demo_feeds().items()}
@@ -85,7 +85,7 @@ def test_startup_failure_preserves_cached_data_and_recovers(database, failure, m
     original = first.detail(first.facilities[0], first.clock())
     database.failure = failure
     monkeypatch.setattr(ParkingIngestion, "start", lambda self: None)
-    with TestClient(main.app) as client:
+    with TestClient(main.app, headers={"Authorization": "Bearer " + identity.token()}) as client:
         assert client.get("/health").status_code == 200
         assert client.get("/ready").status_code == 200
         service, ingestion = client.app.state.parking, client.app.state.ingestion

@@ -1,3 +1,4 @@
+from shared.auth import configure_openapi, protect_service, JWTSettings, TokenVerifier
 """S5 Weather & Air Quality Analytics (T046-T053)."""
 
 import logging
@@ -40,6 +41,7 @@ def settings_from_env() -> Settings:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.token_verifier = TokenVerifier(JWTSettings.from_env())
     settings = settings_from_env()
     provider = build_provider(os.getenv("WEATHER_PROVIDER", "open_meteo"), timeout=settings.timeout)
     store = Store(os.getenv("WEATHER_DATABASE_PATH", "data/weather.sqlite"))
@@ -71,7 +73,7 @@ async def lifespan(app: FastAPI):
                 await registry_client.stop()
 
 
-app = FastAPI(title="Weather and Air Quality Analytics", version="1.0.0", lifespan=lifespan)
+app = FastAPI(dependencies=[protect_service("s5")],title="Weather and Air Quality Analytics", version="1.0.0", lifespan=lifespan)
 app.include_router(router)
 install_errors(app)
 
@@ -91,3 +93,6 @@ async def ready():
 @app.get("/", include_in_schema=False)
 def root():
     return {"service": SERVICE_ID, "message": "Weather and Air Quality Analytics is running", "docs": "/docs"}
+
+
+configure_openapi(app)

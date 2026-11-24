@@ -134,7 +134,7 @@ async def local_server_with_identity(authority):
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
         port = listener.getsockname()[1]
-    token = authority.token(permissions=["parking:estimate"])
+    token = authority.token(roles=["service"], permissions=["parking:estimate", "s4:read"])
     env = os.environ.copy()
     env.update({"PYTHONPATH": os.pathsep.join([str(SERVICE), str(SERVICE.parent)]),
                 "REGISTRY_URL": "", **authority.environment(),

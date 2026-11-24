@@ -2,8 +2,8 @@ openapi: 3.1.0
 info:
   title: Smart City — S3 Construction & Incident Reporting API
   version: 1.0.0
-  description: Prescriptive initial API contract for S3 PR1 FR1–FR6 and QR1–QR5, following T008 common standards.
-    Does not claim implementation status. UTC Z on timestamp output.
+  description: Prescriptive initial API contract for S3 PR1 FR1–FR6 and QR1–QR5, following T008 common standards. Does not
+    claim implementation status. UTC Z on timestamp output.
 servers:
 - url: http://localhost:8083
   description: Illustrative local service address; deployment uses discovery/gateway routing.
@@ -19,10 +19,10 @@ paths:
       - Incidents
       operationId: listIncidents
       summary: Search public incident reports within a geographic radius
-      description: PR1 FR3, QR1. Only non-withdrawn reports; active by default. Geodesic centre distance; filter
-        then stable sort (incident_id ascending tie-breaker) then paginate. An empty match returns 200 with
-        items=[]. Public read.
-      security: []
+      description: PR1 FR3, QR1. Only non-withdrawn reports; active by default. Geodesic centre distance; filter then stable
+        sort (incident_id ascending tie-breaker) then paginate. An empty match returns 200 with items=[]. Public read.
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/Latitude'
@@ -119,16 +119,20 @@ paths:
           $ref: '#/components/responses/InternalError'
         '503': &id008
           $ref: '#/components/responses/Unavailable'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
     post:
       tags:
       - Incidents
       operationId: createIncident
       summary: Submit and persist a new incident report
-      description: PR1 FR1, FR2, QR2, QR4. Bearer identity determines private owner; server assigns status
-        active, UUID and submitted_at. Same Idempotency-Key and canonical body for same authenticated user
-        returns identical original 201 response during 24-hour retention; mismatched body returns 409.
+      description: PR1 FR1, FR2, QR2, QR4. Bearer identity determines private owner; server assigns status active, UUID and
+        submitted_at. Same Idempotency-Key and canonical body for same authenticated user returns identical original 201 response
+        during 24-hour retention; mismatched body returns 409.
       security:
-      - bearerAuth: []
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/IdempotencyKey'
@@ -191,15 +195,18 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504': &id017
           $ref: '#/components/responses/UpstreamTimeout'
+        '403':
+          description: Insufficient permissions
   /v1/incidents/{incident_id}:
     get:
       tags:
       - Incidents
       operationId: getIncident
       summary: Retrieve detailed public incident report
-      description: PR1 FR4, QR1. Public detail for non-withdrawn reports. Missing or withdrawn reports return
-        404. Owner identity and audit metadata are excluded.
-      security: []
+      description: PR1 FR4, QR1. Public detail for non-withdrawn reports. Missing or withdrawn reports return 404. Owner identity
+        and audit metadata are excluded.
+      security:
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/IncidentId'
@@ -222,16 +229,20 @@ paths:
         '429': *id006
         '500': *id007
         '503': *id008
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
     patch:
       tags:
       - Incidents
       operationId: updateIncident
       summary: Modify incident or set resolved/completed/inaccurate status
-      description: PR1 FR5, FR6, QR3, QR5. Requires verified report owner or authorized moderator; at least
-        one mutable property. Status transitions only active->resolved/completed/inaccurate and those three
-        statuses->active. Withdrawn reports cannot be patched. No-op does not change updated_at.
+      description: PR1 FR5, FR6, QR3, QR5. Requires verified report owner or authorized moderator; at least one mutable property.
+        Status transitions only active->resolved/completed/inaccurate and those three statuses->active. Withdrawn reports
+        cannot be patched. No-op does not change updated_at.
       security:
-      - bearerAuth: []
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/IncidentId'
@@ -290,10 +301,10 @@ paths:
       - Incidents
       operationId: withdrawIncident
       summary: Withdraw incident report
-      description: PR1 FR5, QR3, QR5. Owner/moderator only. Durable soft withdrawal, excluded from public endpoints.
-        Repeated delete by same authorized owner/moderator returns 204. No request body.
+      description: PR1 FR5, QR3, QR5. Owner/moderator only. Durable soft withdrawal, excluded from public endpoints. Repeated
+        delete by same authorized owner/moderator returns 204. No request body.
       security:
-      - bearerAuth: []
+      - BearerAuth: []
       parameters:
       - $ref: '#/components/parameters/RequestId'
       - $ref: '#/components/parameters/IncidentId'
@@ -343,8 +354,8 @@ paths:
       operationId: getReadiness
       summary: Readiness probe for durable reporting and authentication
       security: []
-      description: Ready only when required read/write persistence and trusted token verification capabilities
-        are available; optional municipal feeds do not determine readiness.
+      description: Ready only when required read/write persistence and trusted token verification capabilities are available;
+        optional municipal feeds do not determine readiness.
       responses:
         '200':
           description: Core report operations can be performed.
@@ -364,12 +375,11 @@ paths:
           $ref: '#/components/responses/Unavailable'
 components:
   securitySchemes:
-    bearerAuth:
+    BearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: opaque-or-JWT
-      description: Platform-authorized access token. Verify identity and roles; never trust a claimed owner_id
-        from client.
+      bearerFormat: JWT
+      description: Authentik access token with smart-city scope and signed roles and permissions.
   parameters:
     RequestId:
       name: X-Request-ID
@@ -690,8 +700,8 @@ components:
       - incident_type
       - location
       - description
-      description: Owner, status, submitted_at and updated_at are assigned by the server. observed_at cannot
-        be more than five minutes after receipt.
+      description: Owner, status, submitted_at and updated_at are assigned by the server. observed_at cannot be more than
+        five minutes after receipt.
     IncidentPatchRequest:
       type: object
       additionalProperties: false
@@ -713,8 +723,7 @@ components:
           - inaccurate
       required: []
       minProperties: 1
-      description: All attributes optional, but at least one must appear. No withdrawal via PATCH; only owner
-        or moderator.
+      description: All attributes optional, but at least one must appear. No withdrawal via PATCH; only owner or moderator.
     IncidentReport:
       type: object
       additionalProperties: false

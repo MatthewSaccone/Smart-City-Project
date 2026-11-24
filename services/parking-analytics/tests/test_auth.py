@@ -30,12 +30,17 @@ def test_untrusted_or_expired_tokens_rejected(client, identity, claims):
     assert response.status_code == 401 and token not in response.text
 
 
-@pytest.mark.parametrize("claims", [
-    {"permissions": ["parking:estimate"]}, {"scope": "openid parking:estimate"}, {"roles": ["parking:estimate"]}])
-def test_estimator_accepts_only_signed_permission_claims(client, identity, claims):
+@pytest.mark.parametrize("claims,status", [
+    ({"roles": ["service"], "permissions": ["parking:estimate"]}, 200),
+    ({"permissions": ["parking:estimate"]}, 403),
+    ({"roles": ["service"], "scope": "smart-city parking:estimate"}, 403),
+    ({"roles": ["parking:estimate"]}, 403),
+    ({"roles": ["administrator"], "permissions": ["parking:estimate"]}, 403),
+])
+def test_estimator_accepts_only_signed_service_permission(client, identity, claims, status):
     response = client.post("/v1/parking/occupancy/estimate", json={"observations": []},
                            headers={"Authorization": "Bearer " + identity.token(**claims)})
-    assert response.status_code == 200
+    assert response.status_code == status
 
 
 def test_reader_cannot_elevate_permissions_with_headers_or_malformed_claim(client, identity):

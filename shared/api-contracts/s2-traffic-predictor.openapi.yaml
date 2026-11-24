@@ -2,9 +2,9 @@ openapi: 3.1.0
 info:
   title: Smart City — S2 Traffic Predictor API
   version: 1.2.0
-  description: Design API contract for recurring historical congestion and future point, area, and high-period
-    predictions. Follows common Smart City API standards. It does not assert implementation status. Timestamp
-    output uses UTC Z. All analytics require a trusted RS256 bearer access token; probes remain public.
+  description: Design API contract for recurring historical congestion and future point, area, and high-period predictions.
+    Follows common Smart City API standards. It does not assert implementation status. Timestamp output uses UTC Z. All analytics
+    require a trusted RS256 bearer access token; probes remain public.
 servers:
 - url: http://localhost:8082
   description: Illustrative service address; replaced by deployment service discovery.
@@ -19,10 +19,10 @@ paths:
       - History
       operationId: listHistoricalPatterns
       summary: Return recurring congestion patterns for local weekday/hour buckets
-      description: Read-only history query, grouped by requested IANA timezone. Uses sorted paginated result
-        buckets. Accept start_at and end_at together, or omit both for the last 90 days. Max historical range
-        365 days; timestamps not in the future. Identical explicit-window queries may use a bounded cache.
-        Source dates are preserved and outage fallback is marked is_stale=true. Relative-window queries bypass the result cache.
+      description: Read-only history query, grouped by requested IANA timezone. Uses sorted paginated result buckets. Accept
+        start_at and end_at together, or omit both for the last 90 days. Max historical range 365 days; timestamps not in
+        the future. Identical explicit-window queries may use a bounded cache. Source dates are preserved and outage fallback
+        is marked is_stale=true. Relative-window queries bypass the result cache.
       security:
       - BearerAuth: []
       parameters:
@@ -108,7 +108,11 @@ paths:
               description: Aggregate-cache handling, independent of source freshness.
               schema:
                 type: string
-                enum: [HIT, MISS, BYPASS, STALE]
+                enum:
+                - HIT
+                - MISS
+                - BYPASS
+                - STALE
           content:
             application/json:
               schema:
@@ -155,14 +159,16 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '403':
+          description: Insufficient permissions
   /v1/traffic/predictions:
     post:
       tags:
       - Predictions
       operationId: predictPointCongestion
       summary: Predict congestion for one location at a future time
-      description: Read-only computation that creates no resource; repeat requests have no duplicate-write
-        effect. Requires a validated, unexpired historical model.
+      description: Read-only computation that creates no resource; repeat requests have no duplicate-write effect. Requires
+        a validated, unexpired historical model.
       security:
       - BearerAuth: []
       parameters:
@@ -227,15 +233,16 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '403':
+          description: Insufficient permissions
   /v1/traffic/predictions/high-congestion-periods:
     get:
       tags:
       - Predictions
       operationId: listHighCongestionPeriods
       summary: Identify high-congestion periods within an area and future time window
-      description: Classifies 30-minute UTC-aligned forecast slots, merges adjacent high slots, clips to the
-        requested window, then paginates. All intervals must be future, <= 48 hours long, and within the next
-        seven days.
+      description: Classifies 30-minute UTC-aligned forecast slots, merges adjacent high slots, clips to the requested window,
+        then paginates. All intervals must be future, <= 48 hours long, and within the next seven days.
       security:
       - BearerAuth: []
       parameters:
@@ -330,14 +337,16 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '403':
+          description: Insufficient permissions
   /v1/traffic/predictions/areas:
     get:
       tags:
       - Predictions
       operationId: listAreaPredictions
       summary: Predict congestion for road segments within a geographic radius
-      description: Filters road-segment representative points within the radius, sorts with segment_id tie-breaker,
-        then paginates. Congestion level sorting is low, moderate, high, unknown.
+      description: Filters road-segment representative points within the radius, sorts with segment_id tie-breaker, then paginates.
+        Congestion level sorting is low, moderate, high, unknown.
       security:
       - BearerAuth: []
       parameters:
@@ -423,13 +432,16 @@ paths:
           $ref: '#/components/responses/Unavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '403':
+          description: Insufficient permissions
   /v1/traffic/ingestion/status:
     get:
       tags:
       - Operations
       operationId: getTrafficIngestionStatus
       summary: Inspect S2 dataset refresh, pub/sub and aggregate-cache health
-      description: Authenticated operational metadata only. Contains no database URLs, credentials, source file paths or raw observations.
+      description: Authenticated operational metadata only. Contains no database URLs, credentials, source file paths or raw
+        observations.
       security:
       - BearerAuth: []
       parameters:
@@ -448,6 +460,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '503':
           $ref: '#/components/responses/Unavailable'
+        '403':
+          description: Insufficient permissions
   /health:
     get:
       tags:
@@ -477,8 +491,8 @@ paths:
       operationId: getReadiness
       summary: Readiness probe
       security: []
-      description: Ready only when the service can provide essential predictions using a validated, unexpired
-        model and adequate historical features or an explicitly approved fallback.
+      description: Ready only when the service can provide essential predictions using a validated, unexpired model and adequate
+        historical features or an explicitly approved fallback.
       responses:
         '200':
           description: Service can perform required prediction workloads.
@@ -502,7 +516,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Trusted RS256 access token, verified for issuer, audience, signature and expiry using the same identity provider as S3.
+      description: Authentik access token with smart-city scope and signed roles and permissions.
   parameters:
     RequestId:
       name: X-Request-ID
@@ -605,20 +619,32 @@ components:
           - type: string
             format: date-time
           - type: 'null'
-      required: [dataset_id, dataset_updated_at, dataset_refresh_due_at]
+      required:
+      - dataset_id
+      - dataset_updated_at
+      - dataset_refresh_due_at
     IngestionStatus:
       type: object
       additionalProperties: false
       properties:
         mode:
           type: string
-          enum: [disabled, csv, postgres]
+          enum:
+          - disabled
+          - csv
+          - postgres
         source_status:
           type: string
-          enum: [unconfigured, available, unavailable]
+          enum:
+          - unconfigured
+          - available
+          - unavailable
         broker:
           type: string
-          enum: [disabled, file_refresh, postgres_listen_notify]
+          enum:
+          - disabled
+          - file_refresh
+          - postgres_listen_notify
         broker_connected:
           type: boolean
         last_successful_refresh_at:
@@ -650,7 +676,9 @@ components:
           type: integer
         cache_persistent:
           type: boolean
-      required: [mode, source_status]
+      required:
+      - mode
+      - source_status
     Coordinate:
       type: object
       additionalProperties: false
@@ -733,8 +761,7 @@ components:
       - average_congestion_score
       - congestion_level
       - observation_count
-      description: A historical local weekday/hour bucket. With zero observations the score is null and level
-        unknown.
+      description: A historical local weekday/hour bucket. With zero observations the score is null and level unknown.
     HistoryPatternsResponse:
       type: object
       additionalProperties: false
@@ -830,8 +857,7 @@ components:
           const: false
         is_stale: &id007
           type: boolean
-          description: True if model is past its validity deadline; normal newly generated predictions require
-            false.
+          description: True if model is past its validity deadline; normal newly generated predictions require false.
         data_status: &id008
           type: string
           const: predicted

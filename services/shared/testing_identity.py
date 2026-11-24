@@ -15,6 +15,7 @@ import jwt
 class EphemeralIdentity:
     def __init__(self):
         self.key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        self.kid = "ephemeral-key"
         self.available = True
         self.requests = 0
         authority = self
@@ -26,7 +27,7 @@ class EphemeralIdentity:
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 public = jwt.algorithms.RSAAlgorithm.to_jwk(authority.key.public_key(), as_dict=True)
-                self.wfile.write(json.dumps({"keys": [{**public, "kid": "ephemeral-key", "alg": "RS256", "use": "sig"}]}).encode())
+                self.wfile.write(json.dumps({"keys": [{**public, "kid": authority.kid, "alg": "RS256", "use": "sig"}]}).encode())
 
             def log_message(self, *args):
                 pass
@@ -54,6 +55,6 @@ class EphemeralIdentity:
         now = datetime.now(timezone.utc)
         claims = {"iss": self.issuer, "aud": "smart-city-api", "sub": "service-account-test",
                   "iat": int(now.timestamp()), "exp": int((now + timedelta(minutes=10)).timestamp()),
-                  "roles": ["user"], "permissions": list(permissions)}
+                  "scope": "smart-city", "roles": ["user"], "permissions": list(permissions)}
         claims.update(overrides)
-        return jwt.encode(claims, self.key, algorithm="RS256", headers={"kid": "ephemeral-key"})
+        return jwt.encode(claims, self.key, algorithm="RS256", headers={"kid": self.kid})

@@ -1,0 +1,136 @@
+{
+  "identity_provider": "Authentik",
+  "production_verified": false,
+  "services": {
+    "s1": {
+      "direct": {
+        "health": 200,
+        "ready": 200,
+        "missing_token": 401,
+        "malformed": 401,
+        "invalid_signature": 401,
+        "valid": 200
+      },
+      "gateway": {
+        "health": 200,
+        "ready": 200,
+        "missing_token": 401,
+        "malformed": 401,
+        "invalid_signature": 401,
+        "valid": 200
+      }
+    },
+    "s2": {
+      "direct": {
+        "health": 200,
+        "ready": 503,
+        "missing_token": 401,
+        "malformed": 401,
+        "invalid_signature": 401,
+        "valid": 200
+      },
+      "gateway": {
+        "health": 200,
+        "ready": 503,
+        "missing_token": 401,
+        "malformed": 401,
+        "invalid_signature": 401,
+        "valid": 200
+      }
+    },
+    "s3": {
+      "direct": {
+        "health": 200,
+        "ready": 200,
+        "missing_token": 401,
+        "malformed": 401,
+        "invalid_signature": 401,
+        "valid": 200
+      },
+      "gateway": {
+        "health": 200,
+        "ready": 200,
+        "missing_token": 401,
+        "malformed": 401,
+        "invalid_signature": 401,
+        "valid": 200
+      }
+    },
+    "s4": {
+      "direct": {
+        "health": 200,
+        "ready": 200,
+        "missing_token": 401,
+        "malformed": 401,
+        "invalid_signature": 401,
+        "valid": 200
+      },
+      "gateway": {
+        "health": 200,
+        "ready": 200,
+        "missing_token": 401,
+        "malformed": 401,
+        "invalid_signature": 401,
+        "valid": 200
+      },
+      "estimator": 200,
+      "reader_estimator_denial": 403
+    },
+    "s5": {
+      "direct": {
+        "health": 200,
+        "ready": 200,
+        "missing_token": 401,
+        "malformed": 401,
+        "invalid_signature": 401,
+        "valid": 200
+      },
+      "gateway": {
+        "health": 200,
+        "ready": 200,
+        "missing_token": 401,
+        "malformed": 401,
+        "invalid_signature": 401,
+        "valid": 200
+      }
+    },
+    "s6": {
+      "direct": {
+        "health": 200,
+        "ready": 200,
+        "missing_token": 401,
+        "malformed": 401,
+        "invalid_signature": 401,
+        "valid": 200
+      },
+      "gateway": {
+        "health": 200,
+        "ready": 200,
+        "missing_token": 401,
+        "malformed": 401,
+        "invalid_signature": 401,
+        "valid": 200
+      }
+    },
+    "s7": {
+      "direct": {
+        "health": 200,
+        "ready": 200,
+        "missing_token": 401,
+        "malformed": 401,
+        "invalid_signature": 401,
+        "valid": 200
+      },
+      "gateway": {
+        "health": 200,
+        "ready": 200,
+        "missing_token": 401,
+        "malformed": 401,
+        "invalid_signature": 401,
+        "valid": 200
+      }
+    }
+  },
+  "cross_service_denial": true,
+  "swagger_configuration": "passed (interactive login is manual)"
+}

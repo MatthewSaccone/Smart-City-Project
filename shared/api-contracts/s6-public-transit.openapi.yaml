@@ -2,8 +2,8 @@ openapi: 3.1.0
 info:
   title: Smart City — S6 Public Transit Analysis API
   version: 1.0.0
-  description: Design contract for S6. Fully conforms to adopted Smart City API Standards v1.0. PR1 FR1–FR5 and QR1–QR4
-    mapped. No transit provider or operational deployment is claimed.
+  description: Design contract for S6. Fully conforms to adopted Smart City API Standards v1.0. PR1 FR1–FR5 and QR1–QR4 mapped.
+    No transit provider or operational deployment is claimed.
 servers:
 - url: https://api.example.invalid
   description: Placeholder only; replace with approved gateway URL.
@@ -22,7 +22,8 @@ paths:
       description: S6 FR5. Geodesic search radius <=20,000m. Filter by supported mode; stable sorting by distance or name
         then stop_id; apply pagination after filtering and sorting. Active schedule validity must cover the requested area.
         No JSON body.
-      security: []
+      security:
+      - BearerAuth: []
       x-pr1-requirements:
       - S6 FR5
       parameters:
@@ -88,15 +89,20 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /v1/transit/routes:
     get:
       tags:
       - Public Transit
       operationId: listTransitRoutes
       summary: Find routes serving stops near a point
-      description: S6 FR5. A route matches if at least one stop on its current published schedule is within the radius.
-        Deduplicate and sort deterministically before pagination; v1 supports bus, train, tram modes.
-      security: []
+      description: S6 FR5. A route matches if at least one stop on its current published schedule is within the radius. Deduplicate
+        and sort deterministically before pagination; v1 supports bus, train, tram modes.
+      security:
+      - BearerAuth: []
       x-pr1-requirements:
       - S6 FR5
       parameters:
@@ -157,6 +163,10 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /v1/transit/stops/{stop_id}/arrivals:
     get:
       tags:
@@ -165,10 +175,10 @@ paths:
       summary: Upcoming arrival and departure schedule and estimates at a stop
       description: S6 FR1 and QR1–QR4. Response target <=1500ms, also with 50 concurrent prediction requests. Each arrival/departure
         has a scheduled timestamp plus optional fresh live estimate, display timestamp, and basis. Live data over 60 seconds
-        old MUST NOT be exposed as current; serve schedule fallback when real-time feed fails. Query interval [start_at,
-        start_at+window_minutes). Default stable order by display_at ascending, then trip_id; sort_order may reverse display_at
-        order.
-      security: []
+        old MUST NOT be exposed as current; serve schedule fallback when real-time feed fails. Query interval [start_at, start_at+window_minutes).
+        Default stable order by display_at ascending, then trip_id; sort_order may reverse display_at order.
+      security:
+      - BearerAuth: []
       x-pr1-requirements:
       - S6 FR1
       - S6 QR1
@@ -249,6 +259,10 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /v1/transit/delays:
     get:
       tags:
@@ -256,9 +270,10 @@ paths:
       operationId: listTransitDelays
       summary: Transit trip and vehicle delays
       description: S6 FR2/QR2. At least one of route_id or stop_id is required; both mean intersection. Only reliably observed/predicted
-        positive delay_seconds are listed. Unknown live status MUST NOT be interpreted as no delays; coverage_status is
-        explicit. Sort by event_at (default) or delay_seconds with deterministic tie-break.
-      security: []
+        positive delay_seconds are listed. Unknown live status MUST NOT be interpreted as no delays; coverage_status is explicit.
+        Sort by event_at (default) or delay_seconds with deterministic tie-break.
+      security:
+      - BearerAuth: []
       x-pr1-requirements:
       - S6 FR2
       - S6 QR2
@@ -325,6 +340,10 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /v1/transit/disruptions:
     get:
       tags:
@@ -334,7 +353,8 @@ paths:
       description: S6 FR3. At least one of route_id or stop_id required; optional kind and status. Stale cached alerts require
         explicit outdated status and original timestamps. If no trustworthy alert data exists, return an appropriate provider/service
         error instead of claiming there are no disruptions.
-      security: []
+      security:
+      - BearerAuth: []
       x-pr1-requirements:
       - S6 FR3
       - S6 QR2
@@ -407,6 +427,10 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /v1/transit/occupancy:
     get:
       tags:
@@ -414,9 +438,10 @@ paths:
       operationId: listTransitOccupancy
       summary: Available vehicle or route passenger congestion measurements
       description: S6 FR4. At least one of route_id or vehicle_id required; both mean intersection. Occupancy count/capacity
-        and percentages are nullable. Unknown occupancy MUST NOT be zero. A missing occupancy feed uses coverage_status
-        unavailable and no claimed live count.
-      security: []
+        and percentages are nullable. Unknown occupancy MUST NOT be zero. A missing occupancy feed uses coverage_status unavailable
+        and no claimed live count.
+      security:
+      - BearerAuth: []
       x-pr1-requirements:
       - S6 FR4
       - S6 QR2
@@ -483,6 +508,10 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
         '504':
           $ref: '#/components/responses/UpstreamTimeout'
+        '401':
+          description: Missing or invalid bearer access token
+        '403':
+          description: Insufficient permissions
   /health:
     get:
       tags:
@@ -536,6 +565,12 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Authentik access token with smart-city scope and signed roles and permissions.
   schemas:
     Pagination:
       type: object

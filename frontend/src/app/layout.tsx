@@ -23,7 +23,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col"><nav className="flex gap-4 p-4" aria-label="Authentication">
+          <a href="/api/auth/login">Sign in with Authentik</a>
+          <form method="post" action="/api/auth/logout"><button type="submit">Sign out of dashboard</button></form>
+        </nav>
+        {children}</body>
     </html>
   );
 }

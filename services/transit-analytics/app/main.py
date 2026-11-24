@@ -1,4 +1,5 @@
-﻿import logging
+from shared.auth import configure_openapi, protect_service, JWTSettings, TokenVerifier
+import logging
 import os
 import asyncio
 
@@ -29,6 +30,7 @@ REGISTRY_API_KEY = os.getenv("REGISTRY_API_KEY")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.token_verifier = TokenVerifier(JWTSettings.from_env())
     registry_client = None
     repository = Repository()
     app.state.repository = repository
@@ -73,7 +75,7 @@ async def lifespan(app: FastAPI):
                 await registry_client.stop()
 
 
-app = FastAPI(
+app = FastAPI(dependencies=[protect_service("s6")],
     title="Public Transit Analytics",
     version="1.0.0",
     lifespan=lifespan,
@@ -99,3 +101,6 @@ def root():
         "service": SERVICE_ID,
         "message": "Public Transit Analytics service is running",
     }
+
+
+configure_openapi(app)

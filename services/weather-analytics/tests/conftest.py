@@ -112,10 +112,23 @@ def make_service(provider, clock, db_path):
 
 
 @pytest.fixture
-def client(monkeypatch, make_service, tmp_path):
+def client(monkeypatch, make_service, tmp_path, identity):
     monkeypatch.setattr(main, "REGISTRY_URL", None)
     monkeypatch.setenv("WEATHER_PROVIDER", "unavailable")
     monkeypatch.setenv("WEATHER_DATABASE_PATH", str(tmp_path / "unused.sqlite"))
-    with TestClient(main.app) as test_client:
+    with TestClient(main.app, headers={"Authorization": "Bearer " + identity.token()}) as test_client:
         test_client.app.state.weather = make_service()
         yield test_client
+
+
+@pytest.fixture(scope="session")
+def identity():
+    from shared.testing_identity import EphemeralIdentity
+    with EphemeralIdentity() as authority:
+        yield authority
+
+@pytest.fixture(autouse=True)
+def jwt_configuration(monkeypatch, identity):
+    for key, value in identity.environment().items():
+        monkeypatch.setenv(key, value)
+

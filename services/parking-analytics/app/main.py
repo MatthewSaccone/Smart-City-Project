@@ -1,4 +1,5 @@
-﻿import logging
+from shared.auth import configure_openapi, protect_service
+import logging
 import os
 import asyncio
 
@@ -75,7 +76,7 @@ async def lifespan(app: FastAPI):
                 await registry_client.stop()
 
 
-app = FastAPI(
+app = FastAPI(dependencies=[protect_service("s4")],
     title="Parking Analytics",
     version="1.1.0",
     lifespan=lifespan,
@@ -102,3 +103,6 @@ def root():
         "service": SERVICE_ID,
         "message": "Parking Analytics service is running",
     }
+
+
+configure_openapi(app)

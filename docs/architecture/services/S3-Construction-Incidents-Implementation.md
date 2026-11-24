@@ -1,6 +1,6 @@
 # S3 — Construction & Incident Reporting Architecture
 
-> **Status:** S3 service implementation and local Keycloak authentication integration are implemented. Local API smoke tests and authentication tests have passed. Production identity-provider hardening, gateway/frontend integration, deployment configuration, and full acceptance verification remain outstanding.
+> **Status:** S3 service implementation and local Authentik authentication integration are implemented. Earlier API smoke and authentication tests predate this migration; real-provider acceptance must be repeated. Production identity-provider hardening, gateway/frontend integration, deployment configuration, and full acceptance verification remain outstanding.
 
 ## 1. Purpose and Scope
 
@@ -134,25 +134,25 @@ The following environment variables configure the verifier:
 
 #### Local development identity provider
 
-The local Docker Compose environment uses Keycloak 26.4.7 as the shared identity provider planned for all seven microservices.
+The local Docker Compose environment uses Authentik (configured in Compose) as the shared identity provider planned for all seven microservices.
 
 | Setting | Local development value |
 |---|---|
-| Realm | `smart-city` |
+| Application slug | `smart-city` |
 | Client / API audience | `smart-city-api` |
-| Issuer | `http://localhost:8088/realms/smart-city` |
-| Internal JWKS endpoint | `http://keycloak:8080/realms/smart-city/protocol/openid-connect/certs` |
+| Issuer | `http://localhost:8088/application/o/smart-city/` |
+| Internal JWKS endpoint | `http://authentik-server:9000/application/o/smart-city/jwks/` |
 | Role claim | `roles` |
-| Realm roles | `user`, `moderator` |
+| Application roles | `user`, `moderator` |
 | Signing algorithm | RS256 |
 
-Keycloak issues access tokens; S3 acts only as a resource server and validates those tokens. S3 does not issue tokens or manage user credentials.
+Authentik issues access tokens; S3 acts only as a resource server and validates those tokens. S3 does not issue tokens or manage user credentials.
 
-The local Keycloak container uses development mode and HTTP. HTTP JWKS access is permitted only when `APP_ENV=development` and `JWT_ALLOW_INSECURE_JWKS=true` are both explicitly configured. The application defaults to production mode when `APP_ENV` is unset.
+The local Authentik endpoint uses loopback HTTP for development only. HTTP JWKS access is permitted only when `APP_ENV=development` and `JWT_ALLOW_INSECURE_JWKS=true` are both explicitly configured. The application defaults to production mode when `APP_ENV` is unset.
 
 Direct Access Grants (password grant) are enabled for local API smoke testing only. They are not the intended frontend authentication flow. A production frontend should use OpenID Connect Authorization Code with PKCE. Service-to-service authentication should use an appropriate workload identity or client-credentials flow.
 
-This local configuration is not production-ready. Production deployment requires a hardened Keycloak configuration, HTTPS issuer and JWKS endpoints, secure secret management, production-grade database persistence and backups, and confirmation of the final cross-service token and role conventions. API Gateway authentication is not yet configured; S3 currently performs its own token verification and authorization.
+This local configuration is not production-ready. Production deployment requires a hardened Authentik configuration, HTTPS issuer and JWKS endpoints, secure secret management, production-grade database persistence and backups, and confirmation of the final cross-service token and role conventions. The gateway forwards access tokens; S3 performs its own token verification and authorization.
 
 ### 5.3 Authorization rules
 
@@ -333,9 +333,9 @@ A formal retention and privacy policy must be approved before production collect
 
 ## 13. Outstanding Architecture and Deployment Work
 
-The core S3 service architecture and local Keycloak authentication integration are implemented. The following items remain outstanding or require production-level verification:
+The core S3 service architecture and local Authentik authentication integration are implemented. The following items remain outstanding or require production-level verification:
 
-- Harden and deploy Keycloak for production, including HTTPS, secret management, database persistence, and backup/recovery.
+- Harden and deploy Authentik for production, including HTTPS, secret management, database persistence, and backup/recovery.
 - Confirm final token claims, audiences, and role conventions across all seven microservices.
 - Configure and verify API Gateway and frontend authentication integration.
 - Approve retention and privacy policies.

@@ -32,8 +32,8 @@ def configuration(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def client():
-    with TestClient(main.app) as client:
+def client(identity):
+    with TestClient(main.app, headers={"Authorization": "Bearer " + identity.token()}) as client:
         yield client
 
 
@@ -58,3 +58,16 @@ def publish(client):
         repo.live_path.write_text(json.dumps(payload))
         repo.refresh()
     return update
+
+
+@pytest.fixture(scope="session")
+def identity():
+    from shared.testing_identity import EphemeralIdentity
+    with EphemeralIdentity() as authority:
+        yield authority
+
+@pytest.fixture(autouse=True)
+def jwt_configuration(monkeypatch, identity):
+    for key, value in identity.environment().items():
+        monkeypatch.setenv(key, value)
+

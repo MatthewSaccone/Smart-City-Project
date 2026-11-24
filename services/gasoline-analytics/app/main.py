@@ -1,9 +1,10 @@
-﻿import logging
+from shared.auth import configure_openapi, protect_service, JWTSettings, TokenVerifier
+import logging
 import os
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from shared.registry_client import RegistryClient
 
@@ -23,6 +24,7 @@ REGISTRY_API_KEY = os.getenv("REGISTRY_API_KEY")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.token_verifier = TokenVerifier(JWTSettings.from_env())
     registry_client = None
 
     if REGISTRY_URL:
@@ -58,7 +60,7 @@ async def lifespan(app: FastAPI):
             await registry_client.stop()
 
 
-app = FastAPI(
+app = FastAPI(dependencies=[protect_service("s7")],
     title="Gasoline Price Analytics",
     version="0.1.0",
     lifespan=lifespan,
@@ -79,3 +81,19 @@ def root():
         "service": SERVICE_ID,
         "message": "Starter service is running",
     }
+
+
+@app.get("/ready")
+def ready():
+    if not app.state.token_verifier.check_available():
+        raise HTTPException(503, "Trusted identity verification is unavailable")
+    return {"service": SERVICE_ID, "status": "ready"}
+
+
+@app.get("/auth/check", tags=["Operations"])
+def auth_check():
+    """Protected diagnostic until the gasoline business routes are implemented."""
+    return {"service": SERVICE_ID, "authenticated": True}
+
+
+configure_openapi(app)

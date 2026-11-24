@@ -163,3 +163,7 @@ Its available endpoint and focused validation tests have passed. Final full-suit
 Other service and platform capabilities should be assessed using their respective implementation records and test evidence.
 
 A feature should only be described as verified when its required tests or acceptance checks have been completed and the results recorded.
+
+## Shared authentication
+
+See [Authentik setup and verification](docs/Authentik-Migration.md) before calling protected routes. Existing dated test reports are not verification of the migrated deployment.
