@@ -25,6 +25,13 @@ const routes = {
       radius_m: "radius_m",
     },
   },
+  "weather-analytics": {
+    url: "http://localhost:8085/v1/weather/current",
+    query: {
+      latitude: "latitude",
+      longitude: "longitude",
+    },
+  },
 } as const;
 
 export async function POST(request: Request) {
@@ -90,7 +97,8 @@ export async function POST(request: Request) {
     } else if (
       id === "parking-analytics" ||
       id === "live-traffic" ||
-      id === "construction-incidents"
+      id === "construction-incidents" ||
+      id === "weather-analytics"
     ) {
       const route = routes[id];
       url = new URL(route.url);
